@@ -121,7 +121,7 @@ def t_FLOATLIT(t):
   return t
 
 def t_CHARLIT(t):
-  r'\'\d\''
+  r'\'\w\''
   t.value = t.value[1]
   return t
 
