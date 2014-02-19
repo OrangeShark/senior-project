@@ -1,0 +1,42 @@
+import packageName;
+
+func funcName(int myVar) {
+  if( myVar == 0 ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void main(string args[]) {
+  funcName(0);
+  var foo = "bar";
+  int[] arr = [1,2,3,4,5];
+  for(int i = 0; i < arr.length; i++)
+  {
+    print(arr[i]);
+  }
+
+  while(i < arr.length)
+  {
+    print(arr[i]);
+    i--;
+  }
+  
+}
+
+class ClassName {
+  static string hello = "World";
+  float foo;
+
+  ClassName(float foo)
+  {
+    this.foo = foo;
+  }
+  
+  int method() {
+    print(hello);
+    return 1;
+  }
+
+}
