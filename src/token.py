@@ -46,6 +46,7 @@ tokens = (
   'GE', # >=
   'EQ', # ==
   'NE', # !=
+  'PIPE' # |>
 
   # Increment and decrement
   'PLUSPLUS',
@@ -87,6 +88,7 @@ t_GT = r'>'
 t_GE = r'>='
 t_EQ = r'=='
 t_NE = r'!='
+t_PIPE = r'\|>'
 
 # Assignment
 t_ASSIGN = r'='
