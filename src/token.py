@@ -12,8 +12,8 @@ reserved = {
     'char' : 'CHAR',
     'string' : 'STRING',
     'boolean' : 'BOOLEAN',
-    'true', : 'TRUE',
-    'false', : 'FALSE',
+    'true' : 'TRUE',
+    'false' : 'FALSE',
     
     'var' : 'VAR',
     'func' : 'FUNC',
@@ -23,7 +23,7 @@ reserved = {
     'import' : 'IMPORT'
     }
 
-tokens = (
+tokens = [
   # Literals
   'ID',
   'INTLIT',
@@ -46,7 +46,7 @@ tokens = (
   'GE', # >=
   'EQ', # ==
   'NE', # !=
-  'PIPE' # |>
+  'PIPE', # |>
 
   # Increment and decrement
   'PLUSPLUS',
@@ -64,7 +64,7 @@ tokens = (
   'RBRACE',
   'COMMA',
   'SEMI'
-  ) + list(reserved.values())
+  ] + list(reserved.values())
 
 
 def t_newline(t):
@@ -127,7 +127,7 @@ def t_CHARLIT(t):
   t.value = t.value[1]
   return t
 
-def t_STRLIT:
+def t_STRLIT(t):
   r'\".*?\"'
   t.value = t.value[1:-1]
   return t
@@ -135,7 +135,7 @@ def t_STRLIT:
   
 
 def t_error(t):
-  print "Illegal character '%s'" % t.value[0]
+  print("Illegal character '%s'" % t.value[0])
   t.lexer.skip(1)
 
 
