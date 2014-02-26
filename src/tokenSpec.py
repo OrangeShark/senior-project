@@ -26,8 +26,8 @@ reserved = {
 tokens = [
   # Literals
   'ID',
-  'INTLIT',
   'FLOATLIT',
+  'INTLIT',
   'STRLIT'
   'CHARLIT',
 
@@ -112,14 +112,14 @@ def t_ID(t):
   t.type = reserved.get(t.value, 'ID')
   return t
 
+def t_FLOATLIT(t):
+  r'(\d*\.\d+)'
+  t.value = float(t.value)
+  return t
+
 def t_INTLIT(t):
   r'\d+'
   t.value = int(t.value)
-  return t
-
-def t_FLOATLIT(t):
-  r'\d+\.\d+'
-  t.value = float(t.value)
   return t
 
 def t_CHARLIT(t):
