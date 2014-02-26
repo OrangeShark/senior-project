@@ -10,4 +10,13 @@ class TestLexerTokens(unittest.TestCase):
     self.scanner.scan("2")
     token = self.scanner.token()
     self.assertEqual(token.type, "INTLIT")
+    self.scanner.scan("0")
+    token = self.scanner.token()
+    self.assertEqual(token.type, "INTLIT")
+    self.scanner.scan("12")
+    token = self.scanner.token()
+    self.assertEqual(token.type, "INTLIT")
+    self.scanner.scan("1234")
+    token = self.scanner.token()
+    self.assertEqual(token.type, "INTLIT")
 
