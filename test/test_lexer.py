@@ -54,6 +54,9 @@ class TestLexerTokens(unittest.TestCase):
     self.scanner.scan("3.14")
     token = self.scanner.token()
     self.assertEqual(token.type, "FLOATLIT")
+    self.scanner.scan(".9634523")
+    token = self.scanner.token()
+    self.assertEqual(token.type, "FLOATLIT")
 
 
 
