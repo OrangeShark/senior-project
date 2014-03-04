@@ -59,4 +59,8 @@ class TestLexerTokens(unittest.TestCase):
     self.assertEqual(token.type, "FLOATLIT")
 
 
+  def test_string_literal(self):
+    self.scanner.scan('""')
+    token = self.scanner.token()
+    self.assertEqual(token.type, "STRLIT")
 

@@ -28,7 +28,7 @@ tokens = [
   'ID',
   'FLOATLIT',
   'INTLIT',
-  'STRLIT'
+  'STRLIT',
   'CHARLIT',
 
   # Operators
