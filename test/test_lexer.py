@@ -4,48 +4,28 @@ from src import lexer
 class TestLexerTokens(unittest.TestCase):
   def setUp(self):
     self.scanner = lexer.Lexer()
-
+  
+  int_tokens = [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "123",
+      "953246754"
+      ]
   def test_int_literal(self):
     # check for integer literals
-    self.scanner.scan("0")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("1")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("2")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("3")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("4")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("5")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("6")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("7")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("8")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("9")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("10")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("12")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
-    self.scanner.scan("1234")
-    token = self.scanner.token()
-    self.assertEqual(token.type, "INTLIT")
+    for int_lit in self.int_tokens:
+      self.scanner.scan(int_lit)
+      token = self.scanner.token()
+      self.assertEqual(token.type, "INTLIT")
 
   def test_float_literal(self):
     self.scanner.scan("0.1")
@@ -58,9 +38,29 @@ class TestLexerTokens(unittest.TestCase):
     token = self.scanner.token()
     self.assertEqual(token.type, "FLOATLIT")
 
-
+  
   def test_string_literal(self):
     self.scanner.scan('""')
     token = self.scanner.token()
     self.assertEqual(token.type, "STRLIT")
+    self.assertEqual(token.value, "")
+    self.scanner.scan('"Hello World!"')
+    token = self.scanner.token()
+    self.assertEqual(token.type, "STRLIT")
+    self.assertEqual(token.value, "Hello World!")
+  
+  identifiers = [
+      "foo",
+      "_foo",
+      "Foo",
+      "Foo8",
+      "FOO_BAR"
+      ]
+
+  def test_id(self):
+    for identifier in self.identifiers:
+      self.scanner.scan(identifier)
+      token = self.scanner.token()
+      self.assertEqual(token.type, "ID")
+
 
