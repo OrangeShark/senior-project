@@ -18,7 +18,7 @@ def p_empty(t):
 
 def p_imports(t):
   '''imports : imports import_declaration
-           | empty'''
+             | empty'''
 
 def p_import_declaration(t):
   'import_declaration : IMPORT ID SEMI'
@@ -100,4 +100,30 @@ def p_while_stmt(t):
 def p_return_stmt(t):
   '''return_stmt : RETURN SEMI
                  | RETURN expression SEMI'''
+
+def p_expression_stmt(t):
+  'expression_stmt : expression SEMI'
+
+def p_expression(t):
+  '''expression : assignment
+                | binary_op
+                | call
+                | variable
+                | literal
+                | paren_expr'''
+
+def p_assignment(t):
+  'assignment : variable ASSIGN expression'
+
+def p_variable(t):
+  'variable : ID'
+
+def p_binary_op(t):
+  '''binary_op : expression PLUS expression
+             | expression MINUS expression
+             | expression TIMES expression
+             | expression DIVIDE expression'''
+
+
+                
 
