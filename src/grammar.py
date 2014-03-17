@@ -157,7 +157,7 @@ def p_variable(t):
   t[0] = t[1]
 
 def p_literal(t):
-  'literal : INTLIT
+  '''literal : INTLIT
            | FLOATLIT
            | TRUE
            | FALSE
