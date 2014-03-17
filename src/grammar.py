@@ -92,6 +92,10 @@ def p_compound_stmt(t):
 def p_statement_list(t):
   '''statement_list : statement_list statement
                     | empty'''
+  if(len(t) == 2):
+    t[0] = []
+  else:
+    t[0] = t[1].append(t[2])
 
 def p_statement(t):
   '''statement : expression_stmt
@@ -114,8 +118,8 @@ def p_if_stmt(t):
   t[0] = IfStmt(t[3], t[5])
 
 def p_if_else_stmt(t):
-  'if_else_stmt : if_stmt ELSE statement'
-  t[0] = IfElseStmt(t[1], t[3])
+  'if_else_stmt : IF LPAREN expression RPAREN statement ELSE statement'
+  t[0] = IfElseStmt(t[3], t[5], t[7])
 
 def p_iteration_stmt(t):
   '''iteration_stmt : while_stmt'''
