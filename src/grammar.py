@@ -18,10 +18,17 @@ def p_empty(t):
   pass
 
 def p_imports(t):
-  '''imports : imports import_declaration
+  '''imports : imports_list
              | empty'''
-  if(len(p) == 4):
-    t[0] = Imports(t[1], t[2])
+  t[0] = t[1]
+
+def p_imports_list(t):
+  '''imports_list : imports_list import_declaration
+                  | import_declaration'''
+  if(len(t) == 2):
+    t[0] = [t[1]]
+  else:
+    t[0] = t[1].append(t[2])
 
 def p_import_declaration(t):
   'import_declaration : IMPORT ID SEMI'
@@ -30,6 +37,10 @@ def p_import_declaration(t):
 def p_declaration_list(t):
   '''declaration_list : declaration-list declaration
                       | declaration'''
+  if(len(t) == 2):
+    t[0] = [t[1]]
+  else:
+    t[0] = t[1].append(t[2])
 
 def p_declaration(t):
   '''declaration : var_declaration
@@ -43,7 +54,7 @@ def p_var_declaration(t):
 
 def p_function_declaration(t):
   'function_declaration : type_specifier ID LPAREN params RPAREN compound_stmt'
-  #t[0] = TODO
+  t[0] = Function(t[1], t[2], t[4], t[6])
 
 def p_type_specifier(t):
   '''type : VOID
@@ -53,14 +64,19 @@ def p_type_specifier(t):
           | BOOLEAN
           '''
   t[0] = t[1]
+
 def p_params(t):
   '''params : param_list
             | empty'''
+  t[0] = t[1]
 
 def p_param_list(t):
   '''param_list : param_list COMMA param
                 | param'''
-  #t[0] = TODO
+  if(len(t) == 2):
+    t[0] = [t[1]]
+  else:
+    t[0] = t[1].append(t[3])
 
 def p_pram(t):
   'param : type_specifier ID'
@@ -140,6 +156,19 @@ def p_variable(t):
   'variable : ID'
   t[0] = t[1]
 
+def p_literal(t):
+  'literal : INTLIT
+           | FLOATLIT
+           | TRUE
+           | FALSE
+           | STRINGLIT
+           | CHARLIT'''
+  t[0] = t[1]
+
+def p_paren_expr(t):
+  'paren_expr : LPAREN expression RPAREN'
+  t[0] = t[2]
+
 def p_binary(t):
   'binary: expression binary_op expression'
   t[0] = BinaryOp(t[1],t[2], t[3])
@@ -148,13 +177,39 @@ def p_unary(t):
   'unary: unary_op expression'
   t[0] = UnaryOp(t[1], t[2])
 
-def binary_op(t):
+def p_binary_op(t):
   '''binary_op : PLUS
                | MINUS
                | TIMES
-               | DIVIDE'''
+               | DIVIDE
+               | MOD
+               | LT
+               | LE
+               | GT
+               | GE
+               | EQ
+               | NE
+               | AND
+               | OR'''
   t[0] = t[1]
 
-def unary_op(t):
+def p_unary_op(t):
   '''unary_op : MINUS'''
   t[0] = t[1]
+
+def p_call(t):
+  'call : ID LPAREN arguments RPAREN'
+  t[0] = Call(t[1], t[3])
+
+def p_arguments(t):
+  '''argument : argument_list
+              | empty'''
+  t[0] = t[1]
+
+def p_argument_list(t):
+  '''argument_list : argument_list COMMA expression
+                   | expression'''
+  if(len(t) == 2):
+    t[0] = [t[1]]
+  else:
+    t[0] = t[1].append(t[3])
