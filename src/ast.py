@@ -22,6 +22,23 @@ class ImportDeclaration(SyntaxNode):
   def codeGen(self):
     pass
 
+types = {
+    'INTLIT' : 'int',
+    'FLOATLIT' : 'float',
+    'TRUE' : 'boolean',
+    'FALSE' : 'boolean',
+    'STRLIT' : 'string',
+    'CHARLIT' : 'char'
+    }
+
+class Literal(SyntaxNode):
+  def __init__(self, token):
+    self.value = token.value
+    self.type = types[token.type]
+
+  def codeGen(self):
+    pass
+
 class BinaryOp(SyntaxNode):
   def __init__(self, left, op, right):
     self.type = "binop"

@@ -158,12 +158,12 @@ def p_variable(t):
 
 def p_literal(t):
   '''literal : INTLIT
-           | FLOATLIT
-           | TRUE
-           | FALSE
-           | STRINGLIT
-           | CHARLIT'''
-  t[0] = t[1]
+             | FLOATLIT
+             | TRUE
+             | FALSE
+             | STRINGLIT
+             | CHARLIT'''
+  t[0] = Literal(t[1])
 
 def p_paren_expr(t):
   'paren_expr : LPAREN expression RPAREN'
