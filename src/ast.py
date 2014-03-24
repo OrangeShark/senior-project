@@ -29,7 +29,7 @@ class ImportDeclaration(SyntaxNode):
     pass
 
 class VariableDeclaration(SyntaxNode):
-  def __init__(self, typeSpec, name):
+  def __init__(self, typeSpec, name, expression=None):
     self.type = typeSpec
     self.name = name
  
@@ -115,25 +115,44 @@ class Assignment(SyntaxNode):
   def codeGen(self):
     pass
 
-types = {
-    'INTLIT' : 'int',
-    'FLOATLIT' : 'float',
-    'TRUE' : 'boolean',
-    'FALSE' : 'boolean',
-    'STRLIT' : 'string',
-    'CHARLIT' : 'char'
-    }
+class Integer(SyntaxNode):
+  def __init__(self, value):
+    self.value = value
 
-class Literal(SyntaxNode):
-  def __init__(self, token):
-    self.value = token.value
-    self.type = types[token.type]
+  def codeGen(self, scope):
+    ty = Type.int()
+    val = Constants.int(ty, self.value)
+    tmp = scope.add(val, Constant.int(ty, 0), "tmp")
+    return tmp, 'INT'
+
+class Float(SyntaxNode):
+  def __init__(self, value):
+    self.value = value
 
   def codeGen(self):
-    ty = Type.int()
-    val = Constant.int(ty, self.value)
-    tmp = scope.add(val, Constant.int(ty, 0), "tmp")
-    return tmp
+    ty = Type.float()
+
+
+class Boolean(SyntaxNode):
+  def __init__(self, value):
+    self.value = value
+
+  def codeGen(self):
+    pass
+
+class String(SyntaxNode):
+  def __init__(self, value):
+    self.value = value
+
+  def codeGen(self):
+    pass
+
+class Character(SyntaxNode):
+  def __init__(self, value):
+    self.value = value
+
+  def codeGen(self):
+    pass
 
 class BinaryOp(SyntaxNode):
   def __init__(self, left, op, right):
@@ -165,7 +184,7 @@ class UnaryOp(SyntaxNode):
 class Call(SyntaxNode):
   def __init__(self, name, arguments):
     self.name = name
-    self.arguments
+    self.arguments = arguments
 
   def codeGen(self):
     pass
