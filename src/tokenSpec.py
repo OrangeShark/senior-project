@@ -128,7 +128,7 @@ def t_CHARLIT(t):
   return t
 
 def t_STRLIT(t):
-  r'\".*?\"'
+  r'"(?:[^"\\]|\\.)*"'
   t.value = t.value[1:-1]
   return t
 

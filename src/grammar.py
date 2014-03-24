@@ -30,7 +30,8 @@ def p_imports_list(t):
   if(len(t) == 2):
     t[0] = [t[1]]
   else:
-    t[0] = t[1].append(t[2])
+    t[0] = t[1]
+    t[0].append(t[2])
 
 def p_import_declaration(t):
   'import_declaration : IMPORT ID SEMI'
@@ -42,7 +43,8 @@ def p_declaration_list(t):
   if(len(t) == 2):
     t[0] = [t[1]]
   else:
-    t[0] = t[1].append(t[2])
+    t[0] = t[1]
+    t[0].append(t[2])
 
 def p_declaration(t):
   '''declaration : var_declaration
@@ -51,8 +53,12 @@ def p_declaration(t):
   t[0] = t[1]
 
 def p_var_declaration(t):
-  'var_declaration : type ID SEMI'
-  t[0] = ast.VariableDeclaration(t[1], t[2])
+  '''var_declaration : type ID SEMI
+                     | type ID ASSIGN expression SEMI'''
+  if len(t) == 4:
+    t[0] = ast.VariableDeclaration(t[1], t[2])
+  else:
+    t[0] = ast.VariableDeclaration(t[1], t[2], t[4])
 
 def p_function_declaration(t):
   'function_declaration : type ID LPAREN params RPAREN compound_stmt'
@@ -78,7 +84,8 @@ def p_param_list(t):
   if(len(t) == 2):
     t[0] = [t[1]]
   else:
-    t[0] = t[1].append(t[3])
+    t[0] = t[1]
+    t[0].append(t[3])
 
 def p_pram(t):
   'param : type ID'
@@ -98,18 +105,20 @@ def p_compound_stmt(t):
 
 def p_statement_list(t):
   '''statement_list : statement_list statement
-                    | empty'''
-  if(len(t) == 2):
-    t[0] = []
+                    | statement'''
+  if len(t) == 2:
+    t[0] = [t[1]]
   else:
-    t[0] = t[1].append(t[2])
+    t[0] = t[1]
+    t[0].append(t[2])
 
 def p_statement(t):
   '''statement : expression_stmt
                | compound_stmt
                | selection_stmt
                | iteration_stmt
-               | return_stmt'''
+               | return_stmt
+               | var_declaration'''
   t[0] = t[1]
 
 def p_expression_stmt(t):
@@ -140,7 +149,7 @@ def p_while_stmt(t):
 def p_return_stmt(t):
   '''return_stmt : RETURN SEMI
                  | RETURN expression SEMI'''
-  lenth = len(t)
+  length = len(t)
   if(length == 3):
     t[0] = ast.ReturnStmt()
   else:
@@ -153,25 +162,51 @@ def p_expression(t):
                 | call
                 | variable
                 | literal
-                | paren_expr'''
+                | paren_expr
+                | array'''
   t[0] = t[1]
 
 def p_assignment(t):
   'assignment : variable ASSIGN expression'
   t[0] = ast.Assignment(t[1], t[3])
 
+
 def p_variable(t):
-  'variable : ID'
-  t[0] = t[1]
+  '''variable : ID
+              | ID LBRACKET expression RBRACKET'''
+  if len(t) == 2:
+    t[0] = ast.Variable(t[1])
+  else:
+    t[0] = ast.Variable(t[1], t[3])
 
 def p_literal(t):
-  '''literal : INTLIT
-             | FLOATLIT
-             | TRUE
-             | FALSE
-             | STRLIT
-             | CHARLIT'''
-  t[0] = ast.Literal(t[1])
+  '''literal : integer
+             | float
+             | boolean 
+             | string
+             | character'''
+  t[0] = t[1]
+
+def p_integer(t):
+  'integer : INTLIT'
+  t[0] = ast.Integer(t[1])
+
+def p_float(t):
+  'float : FLOATLIT'
+  t[0] = ast.Float(t[1])
+
+def p_boolean(t):
+  '''boolean : TRUE
+             | FALSE'''
+  t[0] = ast.Boolean(t[1])
+
+def p_string(t):
+  'string : STRLIT'
+  t[0] = ast.String(t[1])
+
+def p_character(t):
+  'character : CHARLIT'
+  t[0] = ast.Character(t[1])
 
 def p_paren_expr(t):
   'paren_expr : LPAREN expression RPAREN'
@@ -202,7 +237,8 @@ def p_binary_op(t):
   t[0] = t[1]
 
 def p_unary_op(t):
-  '''unary_op : MINUS'''
+  '''unary_op : MINUS
+              | NOT'''
   t[0] = t[1]
 
 def p_call(t):
@@ -220,7 +256,25 @@ def p_argument_list(t):
   if(len(t) == 2):
     t[0] = [t[1]]
   else:
-    t[0] = t[1].append(t[3])
+    t[0] = t[1]
+    t[0].append(t[3])
+
+def p_array_literal(t):
+  'array : LBRACE list RBRACE'
+  t[0] = ast.Array(t[2])
+
+def p_list(t):
+  '''list : list element
+          | empty'''
+  if len(t) == 2:
+    t[0] = []
+  else:
+    t[0] = t[1]
+    t[0].append[2]
+
+def p_element(t):
+  'element : literal'
+  t[0] = t[1]
 
 def p_error(t):
   print("Syntax error " + t.value)
