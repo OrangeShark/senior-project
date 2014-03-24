@@ -20,14 +20,14 @@ class Program(SyntaxNode):
     self.imports = imports
     self.declarations = declarations
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class ImportDeclaration(SyntaxNode):
   def __init__(self, importID):
     self.name = importID
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class VariableDeclaration(SyntaxNode):
@@ -35,7 +35,7 @@ class VariableDeclaration(SyntaxNode):
     self.type = typeSpec
     self.name = name
  
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class Variable(SyntaxNode):
@@ -87,7 +87,7 @@ class ClassDeclaration(SyntaxNode):
     self.name = name
     self.body = body
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class IfStmt(SyntaxNode):
@@ -95,7 +95,7 @@ class IfStmt(SyntaxNode):
     self.condition = condition
     self.statement = statement
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class IfElseStmt(SyntaxNode):
@@ -104,7 +104,7 @@ class IfElseStmt(SyntaxNode):
     self.statement1 = statement1
     self.statement2 = statement2
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class WhileStmt(SyntaxNode):
@@ -112,14 +112,14 @@ class WhileStmt(SyntaxNode):
     self.condition = condition
     self.statement = statement
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class ReturnStmt(SyntaxNode):
   def __init__(self, expression):
     self.expression = expression
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class Assignment(SyntaxNode):
@@ -127,7 +127,7 @@ class Assignment(SyntaxNode):
     self.variable = variable
     self.expression = expression
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class Integer(SyntaxNode):
@@ -144,7 +144,7 @@ class Float(SyntaxNode):
   def __init__(self, value):
     self.value = value
 
-  def codeGen(self):
+  def codeGen(self, scope):
     ty = Type.float()
     val = Constant.real(ty, self.value)
     tmp = scope.add(val, Constant.real(ty, 0), "tmp")
@@ -155,7 +155,7 @@ class Boolean(SyntaxNode):
   def __init__(self, value):
     self.value = value
 
-  def codeGen(self):
+  def codeGen(self, scope):
     ty = Type.int(8)
     val = Constant.int(ty, self.value)
     tmp = scope.add(val, Constant.int(ty, 0), "tmp")
@@ -165,14 +165,14 @@ class String(SyntaxNode):
   def __init__(self, value):
     self.value = value
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class Character(SyntaxNode):
   def __init__(self, value):
     self.value = value
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class BinaryOp(SyntaxNode):
@@ -218,7 +218,7 @@ class UnaryOp(SyntaxNode):
     self.op = op
     self.expression = expression
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
 class Call(SyntaxNode):
@@ -226,6 +226,6 @@ class Call(SyntaxNode):
     self.name = name
     self.arguments = arguments
 
-  def codeGen(self):
+  def codeGen(self, scope):
     pass
 
