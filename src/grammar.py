@@ -69,7 +69,8 @@ def p_type(t):
           | INT
           | FLOAT
           | STRING
-          | BOOLEAN'''
+          | BOOLEAN
+          | CHAR'''
   t[0] = t[1]
 
 def p_params(t):
@@ -138,12 +139,17 @@ def p_if_else_stmt(t):
   t[0] = ast.IfElseStmt(t[3], t[5], t[7])
 
 def p_iteration_stmt(t):
-  '''iteration_stmt : while_stmt'''
+  '''iteration_stmt : while_stmt
+                    | for_stmt'''
   t[0] = t[1]
 
 def p_while_stmt(t):
   'while_stmt : WHILE LPAREN expression RPAREN statement'
   t[0] = ast.WhileStmt(t[3], t[5])
+
+def p_for_stmt(t):
+  'for_stmt : FOR LPAREN var_declaration SEMI expression SEMI assignment'
+  pass
 
 def p_return_stmt(t):
   '''return_stmt : RETURN SEMI
