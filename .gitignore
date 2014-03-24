@@ -1,2 +1,6 @@
 *.swp
 __pycache__
+*.pyc
+env
+parser.out
+parsetab.py
