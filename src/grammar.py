@@ -69,8 +69,7 @@ def p_type(t):
           | INT
           | FLOAT
           | STRING
-          | BOOLEAN
-          '''
+          | BOOLEAN'''
   t[0] = t[1]
 
 def p_params(t):

@@ -25,7 +25,7 @@ class Program(SyntaxNode):
 
 class ImportDeclaration(SyntaxNode):
   def __init__(self, importID):
-    self.importID = importID
+    self.name = importID
 
   def codeGen(self):
     pass
@@ -38,9 +38,17 @@ class VariableDeclaration(SyntaxNode):
   def codeGen(self):
     pass
 
+class Variable(SyntaxNode):
+  def __init__(self, name, index=None):
+    self.name = name
+    self.index = index
+
+  def codeGen(self, scope):
+    pass
+
 class Function(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
-    self.type = typeSpec
+    self.typeSpec = typeSpec
     self.name = name
     self.params = params
     self.body = body
