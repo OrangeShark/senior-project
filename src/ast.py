@@ -1,4 +1,10 @@
 from abc import ABCMeta, abstractmethod
+from llvm import *
+from llvm.core import *
+
+llvmTypes = {
+    'INT', Type.int()
+    }
 
 class SyntaxNode(object):
   __metaclass__ = ABCMeta
@@ -10,7 +16,7 @@ class SyntaxNode(object):
 class Program(SyntaxNode):
   def __init__(self, imports, declarations):
     self.imports = imports
-    self.declarations = declarions
+    self.declarations = declarations
 
   def codeGen(self):
     pass
@@ -27,8 +33,8 @@ class VariableDeclaration(SyntaxNode):
     self.type = typeSpec
     self.name = name
  
- def codeGen(self):
-   pass
+  def codeGen(self):
+    pass
 
 class Function(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
@@ -37,8 +43,28 @@ class Function(SyntaxNode):
     self.params = params
     self.body = body
 
-  def codeGen(self):
-    pass
+  def codeGen(self, scope):
+    params = [param.codeGen() for param in self.params]
+    funcType = Type.function(llvmType[self.type], params)
+    
+    func = scope.module.add_function(funcType, self.name)
+    
+    for i, param in enumerate(self.params):
+      func.args[i].name = param.name
+
+    bb = func.append_basic_block("entry")
+    scope.builder = Builder.new(bb)
+      
+    self.body.codeGen(scope)
+    
+
+class Param(SyntaxNode):
+  def __init__(self, typeSpec, name):
+    self.type = typeSpec
+    self.name = name
+
+  def codeGen(self, scope):
+    return llvmType[self.type]   
 
 class ClassDeclaration(SyntaxNode):
   def __init__(self, name, body):
@@ -104,7 +130,10 @@ class Literal(SyntaxNode):
     self.type = types[token.type]
 
   def codeGen(self):
-    pass
+    ty = Type.int()
+    val = Constant.int(ty, self.value)
+    tmp = scope.add(val, Constant.int(ty, 0), "tmp")
+    return tmp
 
 class BinaryOp(SyntaxNode):
   def __init__(self, left, op, right):
@@ -122,7 +151,16 @@ class UnaryOp(SyntaxNode):
     self.expression = expression
 
   def codeGen(self):
-    pass
+    left = self.left.codeGen(scope)
+    right = self.right.codeGen(scope)
+    zero = Constant.int(Type.int(), 0)
+    assert(type(left) == type(right))
+    tmp = {'+': left.add(right),
+        '-': left.sub(right),
+        '*': left.mul(right),
+        '/': left.sdiv(right),
+        '%': left.srem(right)}
+    return scope.add(tmp[self.op], zero, "tmp")
 
 class Call(SyntaxNode):
   def __init__(self, name, arguments):
