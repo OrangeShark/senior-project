@@ -3,7 +3,9 @@ from llvm import *
 from llvm.core import *
 
 llvmTypes = {
-    'INT', Type.int()
+    'INT': Type.int(),
+    'FLOAT': Type.float(),
+    'BOOLEAN' : Type.int(8)
     }
 
 class SyntaxNode(object):
@@ -57,7 +59,12 @@ class Function(SyntaxNode):
       
     self.body.codeGen(scope)
     
-
+class Array(SyntaxNode) :
+  def __init__(self,value) :
+    self.value = value
+  def codeGen(self, scope) :
+    pass
+    
 class Param(SyntaxNode):
   def __init__(self, typeSpec, name):
     self.type = typeSpec
@@ -121,7 +128,7 @@ class Integer(SyntaxNode):
 
   def codeGen(self, scope):
     ty = Type.int()
-    val = Constants.int(ty, self.value)
+    val = Constant.int(ty, self.value)
     tmp = scope.add(val, Constant.int(ty, 0), "tmp")
     return tmp, 'INT'
 
@@ -131,6 +138,9 @@ class Float(SyntaxNode):
 
   def codeGen(self):
     ty = Type.float()
+    val = Constant.real(ty, self.value)
+    tmp = scope.add(val, Constant.real(ty, 0), "tmp")
+    return tmp, 'FLOAT'
 
 
 class Boolean(SyntaxNode):
@@ -138,7 +148,10 @@ class Boolean(SyntaxNode):
     self.value = value
 
   def codeGen(self):
-    pass
+    ty = Type.int(8)
+    val = Constant.int(ty, self.value)
+    tmp = scope.add(val, Constant.int(ty, 0), "tmp")
+    return tmp, 'INT'
 
 class String(SyntaxNode):
   def __init__(self, value):
@@ -161,8 +174,36 @@ class BinaryOp(SyntaxNode):
     self.right = right
     self.op = op
 
-  def codeGen(self):
-    pass
+  def codeGen(self,scope):
+    left = self.left.codeGen(scope)
+    right = self.right.codeGen(scope)
+    assert(left[1] == right[1])
+    if(left[1] == 'INT') :
+      self.op
+    elif(left[1] == 'FLOAT') :
+      self.op += 'f'
+    elif(left[1] == 'BOOLEAN') :
+      self.op += 'b'
+    tmp = {'+': lambda l, r: scope.add(l, r, "tmp"),
+        '-': lambda l, r: scope.sub(l, r, "tmp"),
+        '*': lambda l, r: scope.mul(l, r, "tmp"),
+        '/': lambda l, r: scope.sdiv(l, r, "tmp"),
+        '%': lambda l, r: scope.srem(l, r, "tmp"),
+        '==': lambda l, r: scope.icmp(ICMP_EQ, l, r, "tmp"),
+        '<=': lambda l, r: scope.icmp(ICMP_SGE, l, r, "tmp"),
+        '<': lambda l, r: scope.icmp(ICMP_SGT, l, r, "tmp"),
+        '>=': lambda l, r: scope.icmp(ICMP_SLE, l, r, "tmp"),
+        '>': lambda l, r: scope.icmp(ICMP_SLT, l, r, "tmp"),
+        '+f': lambda l, r: scope.fadd(l, r, "tmp"),
+        '-f': lambda l, r: scope.fsub(l, r, "tmp"),
+        '*f': lambda l, r: scope.fmul(l, r, "tmp"),
+        '/f': lambda l, r: scope.fdiv(l, r, "tmp"),
+        '%f': lambda l, r: scope.frem(l, r, "tmp"),
+        '==b': lambda l, r: scope.icmp(ICMP_EQ, l, r, "tmp"),
+        '&&b': lambda l, r: scope.and_(l, r, "tmp"),
+        '||b': lambda l, r: scope.or_(l, r, "tmp")
+        }
+    return tmp[self.op](left[0], right[0]),left[1];
 
 class UnaryOp(SyntaxNode):
   def __init__(self, op, expression):
@@ -170,16 +211,7 @@ class UnaryOp(SyntaxNode):
     self.expression = expression
 
   def codeGen(self):
-    left = self.left.codeGen(scope)
-    right = self.right.codeGen(scope)
-    zero = Constant.int(Type.int(), 0)
-    assert(type(left) == type(right))
-    tmp = {'+': left.add(right),
-        '-': left.sub(right),
-        '*': left.mul(right),
-        '/': left.sdiv(right),
-        '%': left.srem(right)}
-    return scope.add(tmp[self.op], zero, "tmp")
+    pass
 
 class Call(SyntaxNode):
   def __init__(self, name, arguments):
@@ -188,3 +220,4 @@ class Call(SyntaxNode):
 
   def codeGen(self):
     pass
+
