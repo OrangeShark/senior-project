@@ -98,3 +98,34 @@ class TestParserGrammar(unittest.TestCase):
     self.assertIsInstance(func.params[0], ast.Param)
     self.assertEqual(func.params[0].type, "INT")
     self.assertEqual(func.params[0].name, "bar")
+
+  functionParams = [ Token("VOID"),
+                    Token("ID", "main"),
+                    Token("LPAREN"),
+                    Token("INT"),
+                    Token("ID", "bar"),
+                    Token("COMMA"),
+                    Token("FLOAT"),
+                    Token("ID", "foo"),
+                    Token("RPAREN"),
+                    Token("LBRACE"),
+                    Token("ID", "print"),
+                    Token("LPAREN"),
+                    Token("RPAREN"),
+                    Token("SEMI"),
+                    Token("RBRACE")]
+
+  def testFunctionParams(self):
+    l = Lexer(self.functionParams)
+    root = self.p.parse(l)
+    self.assertIsInstance(root, ast.Program)
+    self.assertEqual(len(root.declarations), 1)
+    self.assertIsInstance(root.declarations[0], ast.Function)
+    func = root.declarations[0]
+    self.assertEqual(len(func.params), 2)
+    self.assertIsInstance(func.params[0], ast.Param)
+    self.assertEqual(func.params[0].type, "INT")
+    self.assertEqual(func.params[0].name, "bar")
+    self.assertIsInstance(func.params[1], ast.Param)
+    self.assertEqual(func.params[1].type, "FLOAT")
+    self.assertEqual(func.params[1].name, "foo")
