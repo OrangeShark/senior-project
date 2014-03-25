@@ -5,7 +5,8 @@ from llvm.core import *
 llvmTypes = {
     'INT': Type.int(),
     'FLOAT': Type.float(),
-    'BOOLEAN' : Type.int(8)
+    'BOOLEAN' : Type.int(8),
+    'VOID' : Type.void()
     }
 
 class SyntaxNode(object):
@@ -20,8 +21,16 @@ class Program(SyntaxNode):
     self.imports = imports
     self.declarations = declarations
 
-  def codeGen(self, scope):
-    pass
+  def codeGen(self, name):
+    module = Module.new(name)
+    scope = {'module': module, 'parent': None, 'names': {}}
+    for importDec in self.imports:
+      importDec.codeGen(scope)
+
+    for declaration in self.declarations:
+      declaration.codeGen(scope)
+
+    return module
 
 class ImportDeclaration(SyntaxNode):
   def __init__(self, importID):
@@ -36,7 +45,11 @@ class VariableDeclaration(SyntaxNode):
     self.name = name
  
   def codeGen(self, scope):
-    pass
+    vc = scope['module'].add_global_variable(llvmTypes[self.typeSpec], self.name)
+    #TODO assign value to variable 
+    scope['names'][self.name] = vc
+
+    return vc, self.type
 
 class Variable(SyntaxNode):
   def __init__(self, name, index=None):
@@ -54,18 +67,21 @@ class Function(SyntaxNode):
     self.body = body
 
   def codeGen(self, scope):
+    newScope = {'module' : scope['module'], 'parent' : scope}
     params = [param.codeGen() for param in self.params]
-    funcType = Type.function(llvmType[self.type], params)
+    funcType = Type.function(llvmType[self.typeSpec], params)
     
-    func = scope.module.add_function(funcType, self.name)
+    func = scope['module'].add_function(funcType, self.name)
     
     for i, param in enumerate(self.params):
       func.args[i].name = param.name
 
     bb = func.append_basic_block("entry")
-    scope.builder = Builder.new(bb)
+    newScope['builder'] = Builder.new(bb)
       
-    self.body.codeGen(scope)
+    body = self.body.codeGen(newScope)
+
+    return funcType, self.typeSpec
     
 class Array(SyntaxNode) :
   def __init__(self,value) :
@@ -79,7 +95,7 @@ class Param(SyntaxNode):
     self.name = name
 
   def codeGen(self, scope):
-    return llvmType[self.type]   
+    return llvmTypes[self.type]   
 
 class ClassDeclaration(SyntaxNode):
   def __init__(self, name, body):
@@ -96,7 +112,15 @@ class IfStmt(SyntaxNode):
     self.statement = statement
 
   def codeGen(self, scope):
-    pass
+    condition, dtype = self.condition.codeGen()
+
+    if dtype != "BOOLEAN":
+      #TODO some error
+      raise error('If expression is not boolean')
+
+    # Convert to llvm bool
+
+    # Create block and branch
 
 class IfElseStmt(SyntaxNode):
   def __init__(self, condition, statement1, statement2):
@@ -105,7 +129,7 @@ class IfElseStmt(SyntaxNode):
     self.statement2 = statement2
 
   def codeGen(self, scope):
-    pass
+    condition = self
 
 class WhileStmt(SyntaxNode):
   def __init__(self, condition, statement):
