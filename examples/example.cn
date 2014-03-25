@@ -1,0 +1,6 @@
+void main()
+{
+  int bar = 2;
+  int foo = 2 + bar * 5;
+  return;
+}

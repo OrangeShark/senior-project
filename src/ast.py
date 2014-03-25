@@ -14,7 +14,7 @@ def createEntryBlockAlloca(function, dataType, var_name):
   entry = function.get_entry_basic_block()
   builder = Builder.new(entry)
   builder.position_at_beginning(entry)
-  return builder.alloca(llvmTypes[dataType], var_name)
+  return builder.alloca(llvmTypes[dataType], name=var_name)
 
 class SyntaxNode(object):
   __metaclass__ = ABCMeta
@@ -25,6 +25,8 @@ class SyntaxNode(object):
 
 class Program(SyntaxNode):
   def __init__(self, imports, declarations):
+    if imports == None:
+      imports = []
     self.imports = imports
     self.declarations = declarations
 
@@ -33,7 +35,7 @@ class Program(SyntaxNode):
     scope = {'module': module, 'parent': None, 'names': {}}
     for importDec in self.imports:
       importDec.codeGen(scope)
-
+    
     for declaration in self.declarations:
       declaration.codeGen(scope)
 
@@ -54,7 +56,7 @@ class GVariableDeclaration(SyntaxNode):
   def codeGen(self, scope):
     vc = scope['module'].add_global_variable(llvmTypes[self.typeSpec], self.name)
     #TODO assign value to variable 
-    scope['names'][self.name] = vc
+    scope['names'][self.name] = (vc, self.type)
 
     return vc, self.type
 
@@ -68,35 +70,39 @@ class Variable(SyntaxNode):
       currScope = scope
       while currScope != None:
         if self.name in currScope['names']:
-          return scope['builder'].load(currScope['names'][self.name], self.name)
+          variable, typeSpec = currScope['names'][self.name]
+          return scope['builder'].load(variable, self.name), typeSpec
       return None
     else:
-      #Handle array reference
+      # TODO Handle array reference
       return None
 
 class Function(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
-    self.typeSpec = typeSpec
+    self.typeSpec = typeSpec.upper()
     self.name = name
+    if params == None:
+      params = []
     self.params = params
     self.body = body
 
   def codeGen(self, scope):
     newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {}}
     params = [param.codeGen() for param in self.params]
-    funcType = Type.function(llvmType[self.typeSpec], params)
+    funcType = Type.function(llvmTypes[self.typeSpec], params)
     
     func = scope['module'].add_function(funcType, self.name)
     
     for arg, param in zip(func.args, self.params):
       arg.name = param.name
-      scope['names'][param.name] = arg
+      scope['names'][param.name] = (arg, param.typeSpec)
 
 
     bb = func.append_basic_block("entry")
     newScope['builder'] = Builder.new(bb)
-    try: 
-      body = self.body.codeGen(newScope)
+    try:
+      for statement in self.body:
+        statement.codeGen(newScope)
       func.verify()
     except:
       func.delete()
@@ -112,11 +118,11 @@ class Array(SyntaxNode) :
     
 class Param(SyntaxNode):
   def __init__(self, typeSpec, name):
-    self.type = typeSpec
+    self.typeSpec = typeSpec
     self.name = name
 
   def codeGen(self, scope):
-    return llvmTypes[self.type]   
+    return llvmTypes[self.typeSpec]
 
 class ClassDeclaration(SyntaxNode):
   def __init__(self, name, body):
@@ -161,16 +167,19 @@ class WhileStmt(SyntaxNode):
     pass
 
 class ReturnStmt(SyntaxNode):
-  def __init__(self, expression):
+  def __init__(self, expression=None):
     self.expression = expression
 
   def codeGen(self, scope):
-    result = self.expression.codeGen(scope)
-    scope['builder'].ret(result)
+    if self.expression == None:
+      scope['builder'].ret_void()
+    else:
+      result = self.expression.codeGen(scope)
+      scope['builder'].ret(result)
 
 class VariableDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, expression=None):
-    self.typeSpec = typeSpec
+    self.typeSpec = typeSpec.upper()
     self.name = name
     self.expression = expression
 
@@ -179,14 +188,13 @@ class VariableDeclaration(SyntaxNode):
       # Handle declaration
       pass
     else:
-      value, typeSpec = expression.codeGen()
+      value, typeSpec = self.expression.codeGen(scope)
       if typeSpec != self.typeSpec:
-
         # Not the same type
         raise Error("Not the same type")
       alloca = createEntryBlockAlloca(scope['builder'].basic_block.function, self.typeSpec, self.name)
       scope['builder'].store(value, alloca)
-      scope['names'] = alloca
+      scope['names'][self.name] = (alloca, self.typeSpec)
 
       return alloca, None
 
@@ -220,7 +228,7 @@ class Integer(SyntaxNode):
   def codeGen(self, scope):
     ty = Type.int()
     val = Constant.int(ty, self.value)
-    tmp = scope.add(val, Constant.int(ty, 0), "tmp")
+    tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
     return tmp, 'INT'
 
 class Float(SyntaxNode):
@@ -230,7 +238,7 @@ class Float(SyntaxNode):
   def codeGen(self, scope):
     ty = Type.float()
     val = Constant.real(ty, self.value)
-    tmp = scope.add(val, Constant.real(ty, 0), "tmp")
+    tmp = scope['builder'].add(val, Constant.real(ty, 0), "tmp")
     return tmp, 'FLOAT'
 
 
@@ -241,7 +249,7 @@ class Boolean(SyntaxNode):
   def codeGen(self, scope):
     ty = Type.int(8)
     val = Constant.int(ty, self.value)
-    tmp = scope.add(val, Constant.int(ty, 0), "tmp")
+    tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
     return tmp, 'INT'
 
 class String(SyntaxNode):
@@ -275,24 +283,25 @@ class BinaryOp(SyntaxNode):
       self.op += 'f'
     elif(left[1] == 'BOOLEAN') :
       self.op += 'b'
-    tmp = {'+': lambda l, r: scope.add(l, r, "tmp"),
-        '-': lambda l, r: scope.sub(l, r, "tmp"),
-        '*': lambda l, r: scope.mul(l, r, "tmp"),
-        '/': lambda l, r: scope.sdiv(l, r, "tmp"),
-        '%': lambda l, r: scope.srem(l, r, "tmp"),
-        '==': lambda l, r: scope.icmp(ICMP_EQ, l, r, "tmp"),
-        '<=': lambda l, r: scope.icmp(ICMP_SGE, l, r, "tmp"),
-        '<': lambda l, r: scope.icmp(ICMP_SGT, l, r, "tmp"),
-        '>=': lambda l, r: scope.icmp(ICMP_SLE, l, r, "tmp"),
-        '>': lambda l, r: scope.icmp(ICMP_SLT, l, r, "tmp"),
-        '+f': lambda l, r: scope.fadd(l, r, "tmp"),
-        '-f': lambda l, r: scope.fsub(l, r, "tmp"),
-        '*f': lambda l, r: scope.fmul(l, r, "tmp"),
-        '/f': lambda l, r: scope.fdiv(l, r, "tmp"),
-        '%f': lambda l, r: scope.frem(l, r, "tmp"),
-        '==b': lambda l, r: scope.icmp(ICMP_EQ, l, r, "tmp"),
-        '&&b': lambda l, r: scope.and_(l, r, "tmp"),
-        '||b': lambda l, r: scope.or_(l, r, "tmp")
+    builder = scope['builder']
+    tmp = {'+': lambda l, r: builder.add(l, r, "tmp"),
+        '-': lambda l, r: builder.sub(l, r, "tmp"),
+        '*': lambda l, r: builder.mul(l, r, "tmp"),
+        '/': lambda l, r: builder.sdiv(l, r, "tmp"),
+        '%': lambda l, r: builder.srem(l, r, "tmp"),
+        '==': lambda l, r: builder.icmp(ICMP_EQ, l, r, "tmp"),
+        '<=': lambda l, r: builder.icmp(ICMP_SGE, l, r, "tmp"),
+        '<': lambda l, r: builder.icmp(ICMP_SGT, l, r, "tmp"),
+        '>=': lambda l, r: builder.icmp(ICMP_SLE, l, r, "tmp"),
+        '>': lambda l, r: builder.icmp(ICMP_SLT, l, r, "tmp"),
+        '+f': lambda l, r: builder.fadd(l, r, "tmp"),
+        '-f': lambda l, r: builder.fsub(l, r, "tmp"),
+        '*f': lambda l, r: builder.fmul(l, r, "tmp"),
+        '/f': lambda l, r: builder.fdiv(l, r, "tmp"),
+        '%f': lambda l, r: builder.frem(l, r, "tmp"),
+        '==b': lambda l, r: builder.icmp(ICMP_EQ, l, r, "tmp"),
+        '&&b': lambda l, r: builder.and_(l, r, "tmp"),
+        '||b': lambda l, r: builder.or_(l, r, "tmp")
         }
     return tmp[self.op](left[0], right[0]),left[1];
 
