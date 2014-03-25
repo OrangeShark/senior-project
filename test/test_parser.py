@@ -73,7 +73,7 @@ class TestParserGrammar(unittest.TestCase):
     root = self.p.parse(l)
     self.assertIsInstance(root, ast.Program)
     self.assertEqual(len(root.declarations), 1)
-    self.assertIsInstance(root.declarations[0], ast.VariableDeclaration)
+    self.assertIsInstance(root.declarations[0], ast.GVariableDeclaration)
 
   functionParam = [ Token("VOID"),
                     Token("ID", "main"),
@@ -129,3 +129,4 @@ class TestParserGrammar(unittest.TestCase):
     self.assertIsInstance(func.params[1], ast.Param)
     self.assertEqual(func.params[1].type, "FLOAT")
     self.assertEqual(func.params[1].name, "foo")
+

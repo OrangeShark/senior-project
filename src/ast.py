@@ -9,6 +9,13 @@ llvmTypes = {
     'VOID' : Type.void()
     }
 
+# Helper method for creating allocations of variables on the stack
+def createEntryBlockAlloca(function, dataType, var_name):
+  entry = function.get_entry_basic_block()
+  builder = Builder.new(entry)
+  builder.position_at_beginning(entry)
+  return builder.alloca(llvmTypes[dataType], var_name)
+
 class SyntaxNode(object):
   __metaclass__ = ABCMeta
 
@@ -39,7 +46,7 @@ class ImportDeclaration(SyntaxNode):
   def codeGen(self, scope):
     pass
 
-class VariableDeclaration(SyntaxNode):
+class GVariableDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, expression=None):
     self.type = typeSpec
     self.name = name
@@ -57,7 +64,15 @@ class Variable(SyntaxNode):
     self.index = index
 
   def codeGen(self, scope):
-    pass
+    if self.index == None:
+      currScope = scope
+      while currScope != None:
+        if self.name in currScope['names']:
+          return scope['builder'].load(currScope['names'][self.name], self.name)
+      return None
+    else:
+      #Handle array reference
+      return None
 
 class Function(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
@@ -67,19 +82,25 @@ class Function(SyntaxNode):
     self.body = body
 
   def codeGen(self, scope):
-    newScope = {'module' : scope['module'], 'parent' : scope}
+    newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {}}
     params = [param.codeGen() for param in self.params]
     funcType = Type.function(llvmType[self.typeSpec], params)
     
     func = scope['module'].add_function(funcType, self.name)
     
-    for i, param in enumerate(self.params):
-      func.args[i].name = param.name
+    for arg, param in zip(func.args, self.params):
+      arg.name = param.name
+      scope['names'][param.name] = arg
+
 
     bb = func.append_basic_block("entry")
     newScope['builder'] = Builder.new(bb)
-      
-    body = self.body.codeGen(newScope)
+    try: 
+      body = self.body.codeGen(newScope)
+      func.verify()
+    except:
+      func.delete()
+      raise
 
     return funcType, self.typeSpec
     
@@ -144,7 +165,30 @@ class ReturnStmt(SyntaxNode):
     self.expression = expression
 
   def codeGen(self, scope):
-    pass
+    result = self.expression.codeGen(scope)
+    scope['builder'].ret(result)
+
+class VariableDeclaration(SyntaxNode):
+  def __init__(self, typeSpec, name, expression=None):
+    self.typeSpec = typeSpec
+    self.name = name
+    self.expression = expression
+
+  def codeGen(self, scope):
+    if self.expression == None:
+      # Handle declaration
+      pass
+    else:
+      value, typeSpec = expression.codeGen()
+      if typeSpec != self.typeSpec:
+
+        # Not the same type
+        raise Error("Not the same type")
+      alloca = createEntryBlockAlloca(scope['builder'].basic_block.function, self.typeSpec, self.name)
+      scope['builder'].store(value, alloca)
+      scope['names'] = alloca
+
+      return alloca, None
 
 class Assignment(SyntaxNode):
   def __init__(self, variable, expression):
@@ -152,7 +196,22 @@ class Assignment(SyntaxNode):
     self.expression = expression
 
   def codeGen(self, scope):
-    pass
+    value, typeSpec = self.expression.codeGen(scope)
+    
+    variable = None
+    currScope = scope
+    while currScope != None:
+      if self.variable in currScope['names']:
+          variable = currScope['names'][self.variable]
+      currScope = currScope['parent']
+    
+    if variable == None:
+      # error, variable not found in scope
+      raise Error("No variable named " + self.variable)
+      
+    scope['builder'].store(value, variable)
+
+    return value
 
 class Integer(SyntaxNode):
   def __init__(self, value):

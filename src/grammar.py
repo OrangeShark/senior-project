@@ -56,9 +56,9 @@ def p_var_declaration(t):
   '''var_declaration : type ID SEMI
                      | type ID ASSIGN expression SEMI'''
   if len(t) == 4:
-    t[0] = ast.VariableDeclaration(t[1], t[2])
+    t[0] = ast.GVariableDeclaration(t[1], t[2])
   else:
-    t[0] = ast.VariableDeclaration(t[1], t[2], t[4])
+    t[0] = ast.GVariableDeclaration(t[1], t[2], t[4])
 
 def p_function_declaration(t):
   'function_declaration : type ID LPAREN params RPAREN compound_stmt'
@@ -118,8 +118,16 @@ def p_statement(t):
                | selection_stmt
                | iteration_stmt
                | return_stmt
-               | var_declaration'''
+               | var_dec_stmt'''
   t[0] = t[1]
+
+def p_var_dec_stmt(t):
+  '''var_dec_stmt : type ID SEMI
+                  | type ID ASSIGN expression SEMI'''
+  if len(t) == 4:
+    t[0] = ast.VariableDeclaration(t[1], t[2])
+  else:
+    t[0] = ast.VariableDeclaration(t[1], t[2], t[4])
 
 def p_expression_stmt(t):
   'expression_stmt : expression SEMI'
