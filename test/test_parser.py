@@ -1,5 +1,5 @@
 import unittest
-from src import parser, ast
+from cn import parser, ast
 
 class Lexer():
   def __init__(self, tokens):

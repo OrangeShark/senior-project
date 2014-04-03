@@ -2,7 +2,7 @@
 
 # Import the llvmpy modules.
 import unittest
-from src import ast
+from cn import ast
 from llvm import *
 from llvm.core import *
 from llvm.ee import *

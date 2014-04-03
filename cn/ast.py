@@ -157,15 +157,23 @@ class IfStmt(SyntaxNode):
     self.statement = statement
 
   def codeGen(self, scope):
-    condition, dtype = self.condition.codeGen()
-
+    condition, dtype = self.condition.codeGen(scope)
     if dtype != "BOOLEAN":
-      #TODO some error
       raise RuntimeError('If expression is not boolean')
 
-    # Convert to llvm bool
+    function = scope['builder'].basic_block.function
 
-    # Create block and branch
+    then_block = function.append_basic_block('then')
+    end_block= function.append_basic_block('endif')
+
+    scope['builder'].cbranch(condition, then_block, end_block)
+
+    scope['builder'].position_at_end(then_block)
+    then_value = [s.codeGen(scope) for s in self.statement]
+    scope['builder'].branch(end_block)
+
+    scope['builder'].position_at_end(end_block)
+
 
 class IfElseStmt(SyntaxNode):
   def __init__(self, condition, statement1, statement2):
@@ -174,7 +182,27 @@ class IfElseStmt(SyntaxNode):
     self.statement2 = statement2
 
   def codeGen(self, scope):
-    condition = self
+    condition, dtype = self.condition.codeGen(scope)
+    if dtype != "BOOLEAN":
+      raise RuntimeError('If expression is not boolean')
+
+    function = scope['builder'].basic_block.function
+
+    then_block = function.append_basic_block('then')
+    else_block = function.append_basic_block('else')
+    end_block= function.append_basic_block('endif')
+
+    scope['builder'].cbranch(condition, then_block, else_block)
+
+    scope['builder'].position_at_end(then_block)
+    then_value = [s.codeGen(scope) for s in self.statement1]
+    scope['builder'].branch(end_block)
+
+    scope['builder'].position_at_end(else_block)
+    else_value = [s.codeGen(scope) for s in self.statement2]
+    scope['builder'].branch(end_block)
+
+    scope['builder'].position_at_end(end_block)
 
 class WhileStmt(SyntaxNode):
   def __init__(self, condition, statement):
@@ -304,6 +332,27 @@ class Character(SyntaxNode):
   def codeGen(self, scope):
     pass
 
+opResultType = {
+    '+': 'INT',
+    '-': 'INT', 
+    '*': 'INT',
+    '/': 'INT',
+    '%': 'INT',
+    '==': 'BOOLEAN',
+    '<=': 'BOOLEAN',
+    '<': 'BOOLEAN',
+    '>=': 'BOOLEAN',
+    '>': 'BOOLEAN',
+    '+f': 'FLOAT',
+    '-f': 'FLOAT',
+    '*f': 'FLOAT',
+    '/f': 'FLOAT',
+    '%f': 'FLOAT',
+    '==b': 'BOOLEAN',
+    '&&b': 'BOOLEAN',
+    '||b': 'BOOLEAN'
+}
+
 class BinaryOp(SyntaxNode):
   def __init__(self, left, op, right):
     self.type = "binop"
@@ -315,12 +364,13 @@ class BinaryOp(SyntaxNode):
     left = self.left.codeGen(scope)
     right = self.right.codeGen(scope)
     assert(left[1] == right[1])
+    op = self.op
     if(left[1] == 'INT') :
-      self.op
+      op = self.op
     elif(left[1] == 'FLOAT') :
-      self.op += 'f'
+      op += 'f'
     elif(left[1] == 'BOOLEAN') :
-      self.op += 'b'
+      op += 'b'
     builder = scope['builder']
     tmp = {'+': lambda l, r: builder.add(l, r, "tmp"),
         '-': lambda l, r: builder.sub(l, r, "tmp"),
@@ -341,7 +391,7 @@ class BinaryOp(SyntaxNode):
         '&&b': lambda l, r: builder.and_(l, r, "tmp"),
         '||b': lambda l, r: builder.or_(l, r, "tmp")
         }
-    return tmp[self.op](left[0], right[0]),left[1];
+    return tmp[op](left[0], right[0]), opResultType[op];
 
 class UnaryOp(SyntaxNode):
   def __init__(self, op, expression):

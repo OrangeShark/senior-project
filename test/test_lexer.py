@@ -1,5 +1,5 @@
 import unittest
-from src import lexer
+from cn import lexer
 
 class TestLexerTokens(unittest.TestCase):
   def setUp(self):
@@ -43,7 +43,7 @@ class TestLexerTokens(unittest.TestCase):
   string_tokens = [
       '""',
       '"Hello World!"',
-      '" \\" "'
+      '" \" "'
       ]
   def test_string_literal(self):
     for string_lit in self.string_tokens:
