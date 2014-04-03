@@ -1,12 +1,14 @@
 from abc import ABCMeta, abstractmethod
 from llvm import *
 from llvm.core import *
+from src.libcn import LibCN
 
 llvmTypes = {
     'INT': Type.int(),
     'FLOAT': Type.float(),
     'BOOLEAN' : Type.int(8),
-    'VOID' : Type.void()
+    'VOID' : Type.void(),
+    'STRING' : Type.pointer(Type.int(8))
     }
 
 # Helper method for creating allocations of variables on the stack
@@ -33,12 +35,16 @@ class Program(SyntaxNode):
   def codeGen(self, name):
     module = Module.new(name)
     scope = {'module': module, 'parent': None, 'names': {}}
+
     for importDec in self.imports:
       importDec.codeGen(scope)
-    
+
+    func = module.get_or_insert_function(LibCN().printf, 'printf')
+    scope['names']['printf'] = func, 'FUNC'
+
     for declaration in self.declarations:
       declaration.codeGen(scope)
-
+    module.verify()
     return module
 
 class ImportDeclaration(SyntaxNode):
@@ -50,12 +56,18 @@ class ImportDeclaration(SyntaxNode):
 
 class GVariableDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, expression=None):
-    self.type = typeSpec
+    self.typeSpec = typeSpec.upper()
     self.name = name
+    self.expression = expression
  
   def codeGen(self, scope):
     vc = scope['module'].add_global_variable(llvmTypes[self.typeSpec], self.name)
-    #TODO assign value to variable 
+    if self.expression != None:
+      val, typeSpec = self.expression.codeGen(scope)
+      if typeSpec != self.typeSpec:
+        raise RuntimeException("Global variable type of %s does not match %s" % self.name, typeSpec) 
+      vc.initializer = val
+      vc.linkage = LINKAGE_LINKONCE_ODR
     scope['names'][self.name] = (vc, self.type)
 
     return vc, self.type
@@ -68,14 +80,21 @@ class Variable(SyntaxNode):
   def codeGen(self, scope):
     if self.index == None:
       currScope = scope
+
       while currScope != None:
         if self.name in currScope['names']:
           variable, typeSpec = currScope['names'][self.name]
-          return scope['builder'].load(variable, self.name), typeSpec
-      return None
+          if type(variable) == llvm.core.Argument:
+            return variable, typeSpec
+          elif typeSpec == "FUNC":
+            return variable, typeSpec
+          else:
+            return scope['builder'].load(variable, self.name), typeSpec
+        currScope = currScope['parent']
+      return None, None
     else:
       # TODO Handle array reference
-      return None
+      return None, None
 
 class Function(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
@@ -88,7 +107,7 @@ class Function(SyntaxNode):
 
   def codeGen(self, scope):
     newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {}}
-    params = [param.codeGen() for param in self.params]
+    params = [param.codeGen(scope) for param in self.params]
     funcType = Type.function(llvmTypes[self.typeSpec], params)
     
     func = scope['module'].add_function(funcType, self.name)
@@ -96,7 +115,6 @@ class Function(SyntaxNode):
     for arg, param in zip(func.args, self.params):
       arg.name = param.name
       scope['names'][param.name] = (arg, param.typeSpec)
-
 
     bb = func.append_basic_block("entry")
     newScope['builder'] = Builder.new(bb)
@@ -118,7 +136,7 @@ class Array(SyntaxNode) :
     
 class Param(SyntaxNode):
   def __init__(self, typeSpec, name):
-    self.typeSpec = typeSpec
+    self.typeSpec = typeSpec.upper()
     self.name = name
 
   def codeGen(self, scope):
@@ -143,7 +161,7 @@ class IfStmt(SyntaxNode):
 
     if dtype != "BOOLEAN":
       #TODO some error
-      raise error('If expression is not boolean')
+      raise RuntimeError('If expression is not boolean')
 
     # Convert to llvm bool
 
@@ -175,7 +193,7 @@ class ReturnStmt(SyntaxNode):
       scope['builder'].ret_void()
     else:
       result = self.expression.codeGen(scope)
-      scope['builder'].ret(result)
+      scope['builder'].ret(result[0])
 
 class VariableDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, expression=None):
@@ -215,7 +233,7 @@ class Assignment(SyntaxNode):
     
     if variable == None:
       # error, variable not found in scope
-      raise Error("No variable named " + self.variable)
+      raise RuntimeError("No variable named %s" % self.variable)
       
     scope['builder'].store(value, variable)
 
@@ -257,7 +275,27 @@ class String(SyntaxNode):
     self.value = value
 
   def codeGen(self, scope):
-    pass
+    ty = Type.pointer(Type.int(8))
+    val = Constant.stringz(self.value)
+    tmp = scope['builder']
+    collision = 0
+    mod = scope['module']
+    name_fmt = '.conststr.%x.%x'
+    while True:
+      name = name_fmt % (hash(self.value), collision)
+      try:
+        globalstr = mod.get_global_variable_named(name)
+      except LLVMException:
+        globalstr = mod.add_global_variable(val.type, name=name)
+        globalstr.initializer = val
+        globalstr.linkage = LINKAGE_LINKONCE_ODR
+        globalstr.global_constant = True
+      else:
+        existed = str(globalstr.initializer)
+        if existed != str(val):
+          collision += 1
+          continue
+      return globalstr.bitcast(Type.pointer(val.type.element)), 'STRING'
 
 class Character(SyntaxNode):
   def __init__(self, value):
@@ -314,10 +352,17 @@ class UnaryOp(SyntaxNode):
     pass
 
 class Call(SyntaxNode):
-  def __init__(self, name, arguments):
-    self.name = name
+  def __init__(self, expression, arguments):
+    self.expression = expression 
     self.arguments = arguments
 
   def codeGen(self, scope):
-    pass
-
+    func, typeRef = self.expression.codeGen(scope)
+    if typeRef != "FUNC":
+      raise RuntimeError("Not a function")
+    
+    #if len(func.args) != len(self.arguments):
+    #  raise RuntimeError("Incorrect number of arguments")
+    
+    argvalues = [i.codeGen(scope)[0] for i in self.arguments]
+    return scope['builder'].call(func, argvalues, 'calltmp')

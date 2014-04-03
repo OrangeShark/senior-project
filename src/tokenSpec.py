@@ -1,3 +1,4 @@
+import ast
 # Reserved words
 reserved = {
     # control flow
@@ -129,7 +130,7 @@ def t_CHARLIT(t):
 
 def t_STRLIT(t):
   r'"(?:[^"\\]|\\.)*"'
-  t.value = t.value[1:-1]
+  t.value = ast.literal_eval(t.value)
   return t
 
   

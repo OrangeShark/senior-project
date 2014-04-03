@@ -1,6 +1,14 @@
+int x = 10;
+
+int sum(int a, int b)
+{
+  return a + b;
+}
+
 void main()
 {
   int bar = 2;
-  int foo = 2 + bar * 5;
+  int foo = bar + 2;
+  printf("foo: %d\nbar: %d\n", foo + 5, bar);
   return;
 }

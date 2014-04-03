@@ -7,3 +7,5 @@ parsetab.py
 build
 dist
 cn.egg-info
+*.out
+*.bc

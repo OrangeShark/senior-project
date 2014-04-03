@@ -255,7 +255,7 @@ def p_unary_op(t):
   t[0] = t[1]
 
 def p_call(t):
-  'call : ID LPAREN arguments RPAREN'
+  'call : expression LPAREN arguments RPAREN'
   t[0] = ast.Call(t[1], t[3])
 
 def p_arguments(t):
