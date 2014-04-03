@@ -1,5 +1,5 @@
 import ply.yacc as yacc
-from src import grammar
+from cn import grammar
 
 class Parser:
   def __init__(self, **kwargs):

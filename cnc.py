@@ -1,4 +1,4 @@
-from src import lexer, parser
+from cn import lexer, parser
 import argparse
 import os
 from llvm.ee import *

@@ -1,5 +1,5 @@
 import ply.lex as lex
-from src import tokenSpec
+from cn import tokenSpec
 
 class Lexer:
   def __init__(self):

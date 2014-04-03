@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from llvm import *
 from llvm.core import *
-from src.libcn import LibCN
+from cn.libcn import LibCN
 
 llvmTypes = {
     'INT': Type.int(),

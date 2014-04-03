@@ -1,4 +1,4 @@
-from src import ast,tokenSpec
+from cn import ast,tokenSpec
 
 tokens = tokenSpec.tokens
 
