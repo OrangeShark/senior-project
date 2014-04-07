@@ -42,6 +42,9 @@ class Program(SyntaxNode):
     func = module.get_or_insert_function(LibCN().printf, 'printf')
     scope['names']['printf'] = func, 'FUNC', 'INT'
 
+    func = module.get_or_insert_function(LibCN().getchar, 'getchar')
+    scope['names']['getchar'] = func, 'FUNC', 'INT'
+    
     for declaration in self.declarations:
       declaration.codeGen(scope)
     module.verify()
@@ -380,10 +383,10 @@ class BinaryOp(SyntaxNode):
         '/': lambda l, r: builder.sdiv(l, r, "tmp"),
         '%': lambda l, r: builder.srem(l, r, "tmp"),
         '==': lambda l, r: builder.icmp(ICMP_EQ, l, r, "tmp"),
-        '<=': lambda l, r: builder.icmp(ICMP_SGE, l, r, "tmp"),
-        '<': lambda l, r: builder.icmp(ICMP_SGT, l, r, "tmp"),
-        '>=': lambda l, r: builder.icmp(ICMP_SLE, l, r, "tmp"),
-        '>': lambda l, r: builder.icmp(ICMP_SLT, l, r, "tmp"),
+        '>=': lambda l, r: builder.icmp(ICMP_SGE, l, r, "tmp"),
+        '>': lambda l, r: builder.icmp(ICMP_SGT, l, r, "tmp"),
+        '<=': lambda l, r: builder.icmp(ICMP_SLE, l, r, "tmp"),
+        '<': lambda l, r: builder.icmp(ICMP_SLT, l, r, "tmp"),
         '+f': lambda l, r: builder.fadd(l, r, "tmp"),
         '-f': lambda l, r: builder.fsub(l, r, "tmp"),
         '*f': lambda l, r: builder.fmul(l, r, "tmp"),
@@ -406,6 +409,8 @@ class UnaryOp(SyntaxNode):
 class Call(SyntaxNode):
   def __init__(self, expression, arguments):
     self.expression = expression 
+    if arguments == None:
+      arguments = []
     self.arguments = arguments
 
   def codeGen(self, scope):
@@ -415,6 +420,6 @@ class Call(SyntaxNode):
     
     #if len(func.args) != len(self.arguments):
     #  raise RuntimeError("Incorrect number of arguments")
-    
+    len(self.arguments)
     argvalues = [i.codeGen(scope)[0] for i in self.arguments]
     return scope['builder'].call(func[0], argvalues, 'calltmp'), func[2]
