@@ -34,7 +34,9 @@ class TestAST(unittest.TestCase):
     left = FakeNode((builder.add(Constant.int(ty_int, 5), Constant.int(ty_int, 0), "tmp"),'INT'))
     right = FakeNode((builder.add(Constant.int(ty_int, 5), Constant.int(ty_int, 0), "tmp"),'INT'))
     binaryNode = ast.BinaryOp(left, '+', right)
-    tmp = binaryNode.codeGen(builder)
+    scope = dict()
+    scope['builder'] = builder
+    tmp = binaryNode.codeGen(scope)
     builder.ret(tmp[0])
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
@@ -51,7 +53,9 @@ class TestAST(unittest.TestCase):
     left = FakeNode((builder.add(Constant.int(ty_int, 5), Constant.int(ty_int, 0), "tmp"),'INT'))
     right = FakeNode((builder.add(Constant.int(ty_int, 7), Constant.int(ty_int, 0), "tmp"),'INT'))
     binaryNode = ast.BinaryOp(left, '-', right)
-    tmp = binaryNode.codeGen(builder)
+    scope = dict()
+    scope['builder'] = builder
+    tmp = binaryNode.codeGen(scope)
     builder.ret(tmp[0])
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
@@ -68,7 +72,9 @@ class TestAST(unittest.TestCase):
     left = FakeNode((builder.add(Constant.int(ty_int, -5), Constant.int(ty_int, 0), "tmp"),'INT'))
     right = FakeNode((builder.add(Constant.int(ty_int, 2), Constant.int(ty_int, 0), "tmp"),'INT'))
     binaryNode = ast.BinaryOp(left, '%', right)
-    tmp = binaryNode.codeGen(builder)
+    scope = dict()
+    scope['builder'] = builder
+    tmp = binaryNode.codeGen(scope)
     builder.ret(tmp[0])
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])

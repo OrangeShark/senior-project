@@ -32,7 +32,9 @@ class TestAST(unittest.TestCase):
     bb = f_sum.append_basic_block("entry")
     builder = Builder.new(bb)
     integerNode = ast.Integer(5)
-    tmp = integerNode.codeGen(builder)
+    scope = dict()
+    scope['builder'] = builder
+    tmp = integerNode.codeGen(scope)
     builder.ret(tmp[0])
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
@@ -47,7 +49,9 @@ class TestAST(unittest.TestCase):
     bb = f_sum.append_basic_block("entry")
     builder = Builder.new(bb)
     integerNode = ast.Integer(5)
-    tmp = integerNode.codeGen(builder)
+    scope = dict()
+    scope['builder'] = builder
+    tmp = integerNode.codeGen(scope)
     builder.ret(tmp[0])
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
@@ -62,7 +66,9 @@ class TestAST(unittest.TestCase):
     bb = f_sum.append_basic_block("entry")
     builder = Builder.new(bb)
     integerNode = ast.Integer(-5)
-    tmp = integerNode.codeGen(builder)
+    scope = dict()
+    scope['builder'] = builder
+    tmp = integerNode.codeGen(scope)
     builder.ret(tmp[0])
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
