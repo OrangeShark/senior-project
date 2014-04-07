@@ -40,7 +40,7 @@ class Program(SyntaxNode):
       importDec.codeGen(scope)
 
     func = module.get_or_insert_function(LibCN().printf, 'printf')
-    scope['names']['printf'] = func, 'FUNC'
+    scope['names']['printf'] = func, 'FUNC', 'INT'
 
     for declaration in self.declarations:
       declaration.codeGen(scope)
@@ -83,13 +83,13 @@ class Variable(SyntaxNode):
 
       while currScope != None:
         if self.name in currScope['names']:
-          variable, typeSpec = currScope['names'][self.name]
-          if type(variable) == llvm.core.Argument:
-            return variable, typeSpec
-          elif typeSpec == "FUNC":
-            return variable, typeSpec
+          identifier = currScope['names'][self.name]
+          if type(identifier[0]) == llvm.core.Argument:
+            return identifier
+          elif identifier[1] == "FUNC":
+            return identifier
           else:
-            return scope['builder'].load(variable, self.name), typeSpec
+            return scope['builder'].load(identifier[0], self.name), identifier[1]
         currScope = currScope['parent']
       return None, None
     else:
@@ -111,7 +111,7 @@ class Function(SyntaxNode):
     funcType = Type.function(llvmTypes[self.typeSpec], params)
     
     func = scope['module'].add_function(funcType, self.name)
-    
+    scope['names'][self.name] = (func, 'FUNC', self.typeSpec)
     for arg, param in zip(func.args, self.params):
       arg.name = param.name
       scope['names'][param.name] = (arg, param.typeSpec)
@@ -121,6 +121,8 @@ class Function(SyntaxNode):
     try:
       for statement in self.body:
         statement.codeGen(newScope)
+      if(self.typeSpec == 'VOID'):
+        newScope['builder'].ret_void()
       func.verify()
     except:
       func.delete()
@@ -407,12 +409,12 @@ class Call(SyntaxNode):
     self.arguments = arguments
 
   def codeGen(self, scope):
-    func, typeRef = self.expression.codeGen(scope)
-    if typeRef != "FUNC":
+    func = self.expression.codeGen(scope)
+    if func[1] != "FUNC":
       raise RuntimeError("Not a function")
     
     #if len(func.args) != len(self.arguments):
     #  raise RuntimeError("Incorrect number of arguments")
     
     argvalues = [i.codeGen(scope)[0] for i in self.arguments]
-    return scope['builder'].call(func, argvalues, 'calltmp')
+    return scope['builder'].call(func[0], argvalues, 'calltmp'), func[2]
