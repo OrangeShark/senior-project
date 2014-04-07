@@ -1,0 +1,24 @@
+int fibhelper(int a, int b, int n){
+	int ret = a;
+	if(n > 0) {
+		ret = fibhelper(b, a+b, n-1);
+	}
+	return ret;
+}
+
+int fib(int n){
+	return fibhelper(0,1,n);
+}
+
+int printfib(int s, int e){
+	printf("%d ", fib(s));
+	if(s < e) {
+		printfib(s+1,e);
+	}
+	return 1;
+}
+
+void main(){
+	printfib(2,6);
+	printf("\n");
+}
