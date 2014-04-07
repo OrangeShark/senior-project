@@ -1,4 +1,5 @@
 import unittest
+import ast
 from cn import lexer
 
 class TestLexerTokens(unittest.TestCase):
@@ -41,16 +42,16 @@ class TestLexerTokens(unittest.TestCase):
       self.assertEqual(token.value, float(float_lit))
   
   string_tokens = [
-      '""',
-      '"Hello World!"',
-      '" \" "'
+      r'""',
+      r'"Hello World!"',
+      r'" \" "'
       ]
   def test_string_literal(self):
     for string_lit in self.string_tokens:
       self.scanner.scan(string_lit)
       token = self.scanner.token()
       self.assertEqual(token.type, "STRLIT")
-      self.assertEqual(token.value, string_lit[1:-1])
+      self.assertEqual(token.value, ast.literal_eval(string_lit))
   
   identifiers = [
       "foo",
