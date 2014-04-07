@@ -18,8 +18,6 @@ def main():
   source = open(args.infile).read()
   c = codegen.Codegen(p.parse(s.scan(source)))
   
-  fileName = moduleName + ".bc"
-  output = open(fileName, 'w+b')
   if(args.verbose):
     print(c.generateIR(moduleName))
   else:
