@@ -6,7 +6,7 @@ from cn.libcn import LibCN
 llvmTypes = {
     'INT': Type.int(),
     'FLOAT': Type.float(),
-    'BOOLEAN' : Type.int(8),
+    'BOOLEAN' : Type.int(1),
     'VOID' : Type.void(),
     'STRING' : Type.pointer(Type.int(8))
     }
@@ -255,15 +255,15 @@ class Assignment(SyntaxNode):
     variable = None
     currScope = scope
     while currScope != None:
-      if self.variable in currScope['names']:
-          variable = currScope['names'][self.variable]
+      if self.variable.name in currScope['names']:
+          variable = currScope['names'][self.variable.name]
       currScope = currScope['parent']
     
     if variable == None:
       # error, variable not found in scope
-      raise RuntimeError("No variable named %s" % self.variable)
+      raise RuntimeError("No variable named %s" % self.variable.name)
       
-    scope['builder'].store(value, variable)
+    scope['builder'].store(value, variable[0])
 
     return value
 
@@ -293,7 +293,7 @@ class Boolean(SyntaxNode):
     self.value = value
 
   def codeGen(self, scope):
-    ty = Type.int(8)
+    ty = Type.int(1)
     val = Constant.int(ty, self.value)
     tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
     return tmp, 'INT'

@@ -6,6 +6,7 @@ from llvm.ee import *
 def main():
   argp = argparse.ArgumentParser(description='A compiler for the C natural language')
   argp.add_argument('infile', help='source file')
+  argp.add_argument('-v', '--verbose', action='store_true')
   args = argp.parse_args()
 
   s = lexer.Lexer()
@@ -17,7 +18,8 @@ def main():
   module = ast.codeGen("test")
   fileName = args.infile.split('.')[0] + ".bc"
   output = open(fileName, 'w+b')
-  print(module)
+  if(args.verbose):
+    print(module)
   module.to_bitcode(output)
 
 if __name__ == '__main__':

@@ -3,11 +3,11 @@ from cn import ast,tokenSpec
 tokens = tokenSpec.tokens
 
 precedence = (
+     ('nonassoc', 'EQ', 'NE', 'LE', 'LT', 'GT', 'GE'),
+     ('left', 'OR', 'AND'),
      ('left', 'PLUS', 'MINUS'),
      ('left', 'TIMES', 'DIVIDE'),
      ('left', 'MOD'),
-     ('left', 'EQ', 'NE', 'LE', 'LT', 'GT', 'GE'),
-     ('left', 'OR', 'AND'),
      ('right', 'PIPE')
 )
 
@@ -226,28 +226,24 @@ def p_paren_expr(t):
   t[0] = t[2]
 
 def p_binary(t):
-  'binary : expression binary_op expression'
+  '''binary : expression PLUS expression
+            | expression MINUS expression
+            | expression TIMES expression 
+            | expression DIVIDE expression
+            | expression MOD expression
+            | expression LT expression
+            | expression LE expression
+            | expression GT expression
+            | expression GE expression
+            | expression EQ expression
+            | expression NE expression
+            | expression AND expression
+            | expression OR expression'''
   t[0] = ast.BinaryOp(t[1],t[2], t[3])
 
 def p_unary(t):
   'unary : unary_op expression'
   t[0] = ast.UnaryOp(t[1], t[2])
-
-def p_binary_op(t):
-  '''binary_op : PLUS
-               | MINUS
-               | TIMES
-               | DIVIDE
-               | MOD
-               | LT
-               | LE
-               | GT
-               | GE
-               | EQ
-               | NE
-               | AND
-               | OR'''
-  t[0] = t[1]
 
 def p_unary_op(t):
   '''unary_op : MINUS
