@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from cn import lexer, parser
+from cn import lexer, parser, codegen
 import argparse
 import os
 from llvm.ee import *
@@ -16,14 +16,16 @@ def main():
   p = parser.Parser()
 
   source = open(args.infile).read()
-  ast = p.parse(s.scan(source))
+  c = codegen.Codegen(p.parse(s.scan(source)))
   
-  module = ast.codeGen(moduleName)
   fileName = moduleName + ".bc"
   output = open(fileName, 'w+b')
   if(args.verbose):
-    print(module)
-  module.to_bitcode(output)
+    print(c.generateIR(moduleName))
+  else:
+    fileName = moduleName + ".bc"
+    output = open(fileName, 'w+b')
+    output.write(c.generateBinary(moduleName))
 
 if __name__ == '__main__':
   main()
