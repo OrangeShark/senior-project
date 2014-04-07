@@ -1,0 +1,78 @@
+int getin() {
+	int a = getchar();
+	if(a < 32 || a > 126) {
+		a = getin();
+	}
+	return a;
+}
+
+int getint() {
+	return getin() - 48;
+}
+
+int presstwo() {
+	printf("Please write \"r,c\", r = 0.. 2, c = 0.. 2 \n");
+	int a = getint();
+	int comma = getin();
+	int b = getint();
+	
+	int ret = 10;
+
+	if((a >= 0 && a <= 2) && (comma == 44) && (b >= 0 && b <= 2)) {
+		ret = a * 3 + b;
+	}
+	if(ret == 10){		
+		ret = presstwo();
+	}
+	return ret;
+}
+
+int game(int done){
+	int a = 0;
+	int b = 0;
+	int c = 0;
+	int d = 0;
+	int e = 0;
+	int f = 0;
+	int g = 0;
+	int h = 0;
+	int i = 0;
+	if(done > 0){
+		printf("playing the game\n");
+		int move = presstwo();
+		
+		game(done - 1);
+	}
+	return 1;
+}
+
+int press() {
+	int a = getin();
+	int ret = 0 - 1;
+	int neg = 0 - 1;
+	if(a == 121){
+		ret = 1;
+	}
+	if(a == 110){
+		ret = 0;
+	}
+	if(ret == neg){
+		printf("Please write (y/n)\n");
+		ret = press();
+	}
+	return ret;
+}
+
+int play(){
+	printf("Do you want to play??(y/n)\n");
+	int p = press();
+	if(p == 1){
+		game(9);
+		play();
+	}
+	return 0;
+}
+
+void main(){
+	play();
+}
