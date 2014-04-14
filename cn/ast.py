@@ -215,7 +215,25 @@ class WhileStmt(SyntaxNode):
     self.statement = statement
 
   def codeGen(self, scope):
-    pass
+    condition, dtype = self.condition.codeGen(scope)
+    if dtype != "BOOLEAN":
+      raise RuntimeError('If expression is not boolean')
+    
+    
+    function = scope['builder'].basic_block.function
+    
+    then_block = function.append_basic_block('then')
+    end_block= function.append_basic_block('endwhile')
+
+    scope['builder'].cbranch(condition, then_block, end_block)
+
+    scope['builder'].position_at_end(then_block)
+    then_value = [s.codeGen(scope) for s in self.statement]
+    condition, dtype = self.condition.codeGen(scope)
+    scope['builder'].cbranch(condition, then_block, end_block)
+    #scope['builder'].branch(end_block)
+
+    scope['builder'].position_at_end(end_block)
 
 class ReturnStmt(SyntaxNode):
   def __init__(self, expression=None):
