@@ -41,9 +41,15 @@ class Program(SyntaxNode):
 
     func = module.get_or_insert_function(LibCN().printf, 'printf')
     scope['names']['printf'] = func, 'FUNC', 'INT'
-
+    
+    func = module.get_or_insert_function(LibCN().scanf, 'scanf')
+    scope['names']['scanf'] = func, 'FUNC', 'INT'
+    
     func = module.get_or_insert_function(LibCN().getchar, 'getchar')
     scope['names']['getchar'] = func, 'FUNC', 'INT'
+    
+    func = module.get_or_insert_function(LibCN().system, 'system')
+    scope['names']['system'] = func, 'FUNC', 'INT'
     
     for declaration in self.declarations:
       declaration.codeGen(scope)
@@ -132,12 +138,13 @@ class Function(SyntaxNode):
       raise
 
     return funcType, self.typeSpec
-    
+
 class Array(SyntaxNode) :
   def __init__(self,value) :
     self.value = value
   def codeGen(self, scope) :
     pass
+
     
 class Param(SyntaxNode):
   def __init__(self, typeSpec, name):
