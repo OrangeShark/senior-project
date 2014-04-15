@@ -1,4 +1,5 @@
 import unittest
+import ast
 from cn import parser, ast
 
 class Lexer():
@@ -96,7 +97,7 @@ class TestParserGrammar(unittest.TestCase):
     func = root.declarations[0]
     self.assertEqual(len(func.params), 1)
     self.assertIsInstance(func.params[0], ast.Param)
-    self.assertEqual(func.params[0].type, "INT")
+    self.assertEqual(func.params[0].typeSpec, "INT")
     self.assertEqual(func.params[0].name, "bar")
 
   functionParams = [ Token("VOID"),
@@ -124,9 +125,9 @@ class TestParserGrammar(unittest.TestCase):
     func = root.declarations[0]
     self.assertEqual(len(func.params), 2)
     self.assertIsInstance(func.params[0], ast.Param)
-    self.assertEqual(func.params[0].type, "INT")
+    self.assertEqual(func.params[0].typeSpec, "INT")
     self.assertEqual(func.params[0].name, "bar")
     self.assertIsInstance(func.params[1], ast.Param)
-    self.assertEqual(func.params[1].type, "FLOAT")
+    self.assertEqual(func.params[1].typeSpec, "FLOAT")
     self.assertEqual(func.params[1].name, "foo")
 
