@@ -274,10 +274,24 @@ class VariableDeclaration(SyntaxNode):
 
       return alloca, None
 
+class ArrayDeclaration(SyntaxNode):
+  def __init__(self, typeSpec, name, size, array_lit=None):
+    self.typeSpec = typeSpec.upper()
+    self.name = name
+    self.size = size
+    self.array_lit = array_lit
+
+  def codeGen(self, scope):
+    size = Constant.int(Type.int(), self.size)
+    arr = scope['builder'].alloca(llvmTypes[self.typeSpec], size, self.name)
+    scope['names'][self.name] = (arr, 'ARRAY', self.typeSpec)
+    return arr, 'ARRAY'
+
 class Assignment(SyntaxNode):
-  def __init__(self, variable, expression):
+  def __init__(self, variable, expression, indexExpression=None):
     self.variable = variable
     self.expression = expression
+    self.indexExpression = indexExpression
 
   def codeGen(self, scope):
     value, typeSpec = self.expression.codeGen(scope)
@@ -285,15 +299,19 @@ class Assignment(SyntaxNode):
     variable = None
     currScope = scope
     while currScope != None:
-      if self.variable.name in currScope['names']:
-          variable = currScope['names'][self.variable.name]
+      if self.variable in currScope['names']:
+          variable = currScope['names'][self.variable]
       currScope = currScope['parent']
-    
+   
     if variable == None:
       # error, variable not found in scope
-      raise RuntimeError("No variable named %s" % self.variable.name)
-      
-    scope['builder'].store(value, variable[0])
+      raise RuntimeError("No variable named %s" % self.variable)
+    if self.indexExpression == None: 
+      scope['builder'].store(value, variable[0])
+    else:
+      indexVal = self.indexExpression.codeGen(scope)
+      vecptr = scope['builder'].bitcast(indexVal[0], Type.pointer(Type.int(32)))
+      scope['builder'].store(value, vecptr)
 
     return value
 
@@ -326,7 +344,7 @@ class Boolean(SyntaxNode):
     ty = Type.int(1)
     val = Constant.int(ty, self.value)
     tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
-    return tmp, 'INT'
+    return tmp, 'BOOLEAN'
 
 class String(SyntaxNode):
   def __init__(self, value):

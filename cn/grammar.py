@@ -3,8 +3,8 @@ from cn import ast,tokenSpec
 tokens = tokenSpec.tokens
 
 precedence = (
-     ('nonassoc', 'EQ', 'NE', 'LE', 'LT', 'GT', 'GE'),
      ('left', 'OR', 'AND'),
+     ('left', 'EQ', 'NE', 'LE', 'LT', 'GT', 'GE'),
      ('left', 'PLUS', 'MINUS'),
      ('left', 'TIMES', 'DIVIDE'),
      ('left', 'MOD'),
@@ -118,7 +118,8 @@ def p_statement(t):
                | selection_stmt
                | iteration_stmt
                | return_stmt
-               | var_dec_stmt'''
+               | var_dec_stmt
+               | array_dec_stmt'''
   t[0] = t[1]
 
 def p_var_dec_stmt(t):
@@ -128,6 +129,14 @@ def p_var_dec_stmt(t):
     t[0] = ast.VariableDeclaration(t[1], t[2])
   else:
     t[0] = ast.VariableDeclaration(t[1], t[2], t[4])
+
+def p_array_dec_stmt(t):
+  '''array_dec_stmt : type ID LBRACKET INTLIT RBRACKET SEMI
+                    | type ID LBRACKET INTLIT RBRACKET array SEMI'''
+  if len(t) == 7:
+    t[0] = ast.ArrayDeclaration(t[1], t[2], t[4])
+  else:
+    t[0] = ast.ArrayDeclaration(t[1], t[2], t[4], t[6])
 
 def p_expression_stmt(t):
   'expression_stmt : expression SEMI'
@@ -180,8 +189,12 @@ def p_expression(t):
   t[0] = t[1]
 
 def p_assignment(t):
-  'assignment : variable ASSIGN expression'
-  t[0] = ast.Assignment(t[1], t[3])
+  '''assignment : ID ASSIGN expression
+                | ID LBRACKET expression RBRACKET ASSIGN expression'''
+  if len(t) == 4:
+    t[0] = ast.Assignment(t[1], t[3])
+  else:
+    t[0] = ast.Assignment(t[1], t[6], t[3])
 
 
 def p_variable(t):

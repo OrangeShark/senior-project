@@ -131,3 +131,33 @@ class TestParserGrammar(unittest.TestCase):
     self.assertEqual(func.params[1].typeSpec, "FLOAT")
     self.assertEqual(func.params[1].name, "foo")
 
+  variableDeclaration = [ Token("VOID"),
+                          Token("ID", "main"),
+                          Token("LPAREN"),
+                          Token("RPAREN"),
+                          Token("LBRACE"),
+                          Token("INT"),
+                          Token("ID", "x"),
+                          Token("ASSIGN"),
+                          Token("INTLIT", 2),
+                          Token("SEMI"),
+                          Token("RBRACE")]
+ 
+  def testVariableDeclaration(self):
+    l = Lexer(self.variableDeclaration)
+    root = self.p.parse(l)
+    self.assertIsInstance(root, ast.Program)
+    self.assertEqual(len(root.declarations), 1)
+    self.assertIsInstance(root.declarations[0], ast.Function)
+    func = root.declarations[0]
+    self.assertEqual(len(func.params), 0)
+    body = func.body
+    self.assertEqual(len(body), 1)
+    variableDec = body[0]
+    self.assertIsInstance(variableDec, ast.VariableDeclaration)
+    self.assertEqual(variableDec.typeSpec, "INT")
+    self.assertEqual(variableDec.name, "x")
+    self.assertIsInstance(variableDec.expression, ast.Integer)
+    self.assertEqual(variableDec.expression.value, 2)
+
+    
