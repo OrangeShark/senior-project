@@ -18,6 +18,7 @@ reserved = {
     
     'var' : 'VAR',
     'func' : 'FUNC',
+    'helper' : 'FUNC',
     'class' : 'CLASS',
 
     'return' : 'RETURN',

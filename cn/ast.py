@@ -102,7 +102,15 @@ class Variable(SyntaxNode):
         currScope = currScope['parent']
       return None, None
     else:
-      # TODO Handle array reference
+      currscope = scope
+      index = self.index.codeGen(scope)
+      while currscope != None:
+        if self.name in currscope['names']:
+          identifier = currscope['names'][self.name]
+          if type(identifier[0]) == llvm.core.AllocaInstruction:
+            ptr = scope['builder'].gep(identifier[0],[index[0]])
+            return scope['builder'].load(ptr), identifier[2]
+        currscope = currscope['parent']
       return None, None
 
 class Function(SyntaxNode):
@@ -267,7 +275,7 @@ class VariableDeclaration(SyntaxNode):
       value, typeSpec = self.expression.codeGen(scope)
       if typeSpec != self.typeSpec:
         # Not the same type
-        raise Error("Not the same type")
+        raise RuntimeEerror("Not the same type")
       alloca = createEntryBlockAlloca(scope['builder'].basic_block.function, self.typeSpec, self.name)
       scope['builder'].store(value, alloca)
       scope['names'][self.name] = (alloca, self.typeSpec)
@@ -309,10 +317,10 @@ class Assignment(SyntaxNode):
     if self.indexExpression == None: 
       scope['builder'].store(value, variable[0])
     else:
-      indexVal = self.indexExpression.codeGen(scope)
-      vecptr = scope['builder'].bitcast(indexVal[0], Type.pointer(Type.int(32)))
-      scope['builder'].store(value, vecptr)
-
+      index = self.indexExpression.codeGen(scope)
+      if type(variable[0]) == llvm.core.AllocaInstruction:
+        ptr = scope['builder'].gep(variable[0],[index[0]])
+        scope['builder'].store(value, ptr)
     return value
 
 class Integer(SyntaxNode):
@@ -332,7 +340,7 @@ class Float(SyntaxNode):
   def codeGen(self, scope):
     ty = Type.float()
     val = Constant.real(ty, self.value)
-    tmp = scope['builder'].add(val, Constant.real(ty, 0), "tmp")
+    tmp = scope['builder'].fadd(val, Constant.real(ty, 0.0), "tmp")
     return tmp, 'FLOAT'
 
 
