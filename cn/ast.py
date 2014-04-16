@@ -5,7 +5,7 @@ from cn.libcn import LibCN
 
 llvmTypes = {
     'INT': Type.int(),
-    'FLOAT': Type.float(),
+    'FLOAT': Type.double(),
     'BOOLEAN' : Type.int(1),
     'VOID' : Type.void(),
     'STRING' : Type.pointer(Type.int(8))
@@ -330,18 +330,18 @@ class Integer(SyntaxNode):
   def codeGen(self, scope):
     ty = Type.int()
     val = Constant.int(ty, self.value)
-    tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
-    return tmp, 'INT'
+    #tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
+    return val, 'INT'
 
 class Float(SyntaxNode):
   def __init__(self, value):
     self.value = value
 
   def codeGen(self, scope):
-    ty = Type.float()
+    ty = Type.double()
     val = Constant.real(ty, self.value)
-    tmp = scope['builder'].fadd(val, Constant.real(ty, 0.0), "tmp")
-    return tmp, 'FLOAT'
+    #tmp = scope['builder'].fadd(val, Constant.real(ty, 0.0), "tmp")
+    return val, 'FLOAT'
 
 
 class Boolean(SyntaxNode):
@@ -351,8 +351,8 @@ class Boolean(SyntaxNode):
   def codeGen(self, scope):
     ty = Type.int(1)
     val = Constant.int(ty, self.value)
-    tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
-    return tmp, 'BOOLEAN'
+    #tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
+    return val, 'BOOLEAN'
 
 class String(SyntaxNode):
   def __init__(self, value):
