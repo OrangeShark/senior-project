@@ -1,0 +1,25 @@
+
+int print_fib(int from, int to){
+	int fibs[1000];
+	fibs[0] = 0;
+	fibs[1] = 1;
+	int i = 2;
+	while(i <= to){
+		fibs[i] = fibs[i-1] + fibs[i-2];
+		i = i + 1;
+	}
+	i = from;
+	while(i <= to){
+		if(i > from){
+			printf(" ");
+		}
+		printf("%d", fibs[i]);
+		i = i + 1;
+	}
+	printf("\n");
+	return 0;
+}
+
+void main(){
+	print_fib(5, 10);
+}

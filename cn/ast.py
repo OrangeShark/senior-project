@@ -111,6 +111,7 @@ class Variable(SyntaxNode):
             ptr = scope['builder'].gep(identifier[0],[index[0]])
             return scope['builder'].load(ptr), identifier[2]
         currscope = currscope['parent']
+
       return None, None
 
 class Function(SyntaxNode):
