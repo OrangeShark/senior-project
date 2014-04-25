@@ -13,7 +13,7 @@ def main():
   moduleName = args.infile.split('.')[0]
 
   s = lexer.Lexer()
-  p = parser.Parser(log=None)
+  p = parser.Parser()
 
   source = open(args.infile).read()
   c = codegen.Codegen(p.parse(s.scan(source)))
