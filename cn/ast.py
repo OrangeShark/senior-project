@@ -132,7 +132,7 @@ class Function(SyntaxNode):
     scope['names'][self.name] = (func, 'FUNC', self.typeSpec)
     for arg, param in zip(func.args, self.params):
       arg.name = param.name
-      scope['names'][param.name] = (arg, param.typeSpec)
+      newScope['names'][param.name] = (arg, param.typeSpec)
 
     bb = func.append_basic_block("entry")
     newScope['builder'] = Builder.new(bb)
@@ -163,14 +163,113 @@ class Param(SyntaxNode):
   def codeGen(self, scope):
     return llvmTypes[self.typeSpec]
 
+classes = {}
+
 class ClassDeclaration(SyntaxNode):
   def __init__(self, name, body):
-    self.type = 'class'
+    self.typeRef = 'CLASS'
     self.name = name
     self.body = body
 
   def codeGen(self, scope):
+    makeind = lambda x: Constant.int(Type.int(), x)
+    attributes = []
+    classes[self.name.upper()] = {}
+    for i, a in enumerate(self.body[0]):
+      attributes.append(a.codeGen(scope))
+      gep = [makeind(0), makeind(i)]
+      classes[self.name.upper()][a.name] = (gep, a.typeRef.upper())
+    
+    objstruct = Type.struct(attributes, 'object.' + self.name)
+
+    self.body[1].codeGen((scope, self.name, objstruct))
+
+class ClassAttribute(SyntaxNode):
+  def __init__(self, typeRef, name, expression=None):
+    self.typeRef = typeRef.upper()
+    self.name = name
+    self.expression = expression
+  
+  def codeGen(self, scope):
+    return llvmTypes[self.typeRef]
+
+class ClassConstructor(SyntaxNode):
+  def __init__(self, params, body):
+    self.params = params
+    self.body = body
+  
+  def codeGen(self, scope):
+    scope, name, struct = scope
+
+    newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {}}
+    params = [p.codeGen(scope) for p in self.params]
+    ty_constructor = Type.function(Type.pointer(struct), params)
+
+    func = scope['module'].add_function(ty_constructor, name)
+    llvmTypes[name.upper()] = Type.pointer(struct)
+    scope['names'][name] = (func, 'FUNC', name.upper())
+    for arg, param in zip(func.args, self.params):
+      arg.name = param.name
+      newScope['names'][param.name] = (arg, param.typeSpec)
+    
+    bb = func.append_basic_block("entry")
+    newScope['builder'] = Builder.new(bb)
+    retobj = newScope['builder'].malloc(struct, "this")
+    newScope['names']['this'] = (retobj, name)
+    try:
+      for statement in self.body:
+        statement.codeGen(newScope)
+      newScope['builder'].ret(retobj)
+      func.verify()
+    except:
+      func.delete()
+      raise
+    return ty_constructor, name
+
+class ClassMethod(SyntaxNode):
+  def __init__(self, typeSpec, name, params, body):
+    self.typeSpec = typeSpec
+    self.name = name
+    self.params = params
+    self.body = body
+
+  def codeGen(self, scope):
     pass
+
+class AttributeAssignment(SyntaxNode):
+  def __init__(self, objName, name, expression):
+    self.objName = objName
+    self.name = name
+    self.expression = expression
+  
+  def codeGen(self, scope):
+    obj = scope['names'][self.objName.name]
+    if(obj == None):
+      raise RuntimeError("Not in the scope of a class function or constructor")
+
+    val = self.expression.codeGen(scope)
+
+    attPos = classes[obj[1].upper()][self.name]
+    if(attPos[1] != val[1]):
+      raise RuntimeError("Not of the same type")
+    pos = scope['builder'].gep(obj[0], attPos[0])
+    return scope['builder'].store(val[0], pos), val[1]
+    
+class Attribute(SyntaxNode):
+  def __init__(self, objName, name):
+    self.objName = objName
+    self.name = name
+
+  def codeGen(self, scope):
+    obj = scope['names'][self.objName.name]
+    if(obj == None):
+      raise RuntimeError("Not in the scope")
+
+    attPos = classes[obj[1].upper()][self.name]
+    pos = scope['builder'].gep(obj[0], attPos[0])
+    print(pos)
+    return scope['builder'].load(pos), attPos[1]
+
 
 class IfStmt(SyntaxNode):
   def __init__(self, condition, statement):
@@ -276,7 +375,7 @@ class VariableDeclaration(SyntaxNode):
       value, typeSpec = self.expression.codeGen(scope)
       if typeSpec != self.typeSpec:
         # Not the same type
-        raise RuntimeEerror("Not the same type")
+        raise RuntimeError("Not the same type")
       alloca = createEntryBlockAlloca(scope['builder'].basic_block.function, self.typeSpec, self.name)
       scope['builder'].store(value, alloca)
       scope['names'][self.name] = (alloca, self.typeSpec)

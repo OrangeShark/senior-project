@@ -20,6 +20,8 @@ reserved = {
     'func' : 'FUNC',
     'helper' : 'FUNC',
     'class' : 'CLASS',
+    'constructor' : 'CONSTR',
+    #'this' : 'THIS',
 
     'return' : 'RETURN',
     'import' : 'IMPORT'
@@ -49,6 +51,7 @@ tokens = [
   'EQ', # ==
   'NE', # !=
   'PIPE', # |>
+  'DOT', # .
 
   # Increment and decrement
   'PLUSPLUS',
@@ -91,6 +94,7 @@ t_GE = r'>='
 t_EQ = r'=='
 t_NE = r'!='
 t_PIPE = r'\|>'
+t_DOT = r'\.'
 
 # Assignment
 t_ASSIGN = r'='

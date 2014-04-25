@@ -1,0 +1,15 @@
+class Foo {
+  int x;
+  float y;
+  int z;
+  constructor(int x, float y, int z) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+}
+
+void main() {
+  Foo my_foo = Foo(2, 5.5, 3);
+  printf("%d", my_foo.x);
+}
