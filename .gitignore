@@ -6,6 +6,6 @@ parser.out
 parsetab.py
 build
 dist
-cn.egg-info
+cnc.egg-info
 *.out
 *.bc
