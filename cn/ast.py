@@ -270,6 +270,7 @@ class ClassMethod(SyntaxNode):
     func = scope['module'].add_function(ty_method, "{}.{}".format(className, self.name))
     func.args[0].name = "this"
     newScope['names']['this'] = (func.args[0], className)
+    classes[className][self.name] = (func, self.typeSpec)
     for i in range(len(self.params)):
       name = self.params[i].name
       func.args[i+1] = name
@@ -616,8 +617,8 @@ class MethodCall(SyntaxNode):
 
   def codeGen(self, scope):
     obj = self.expression.codeGen(scope)
-    name = obj[1] + "." + self.method
+    name = '{}.{}'.format(obj[1], self.method)
     argvalues = [i.codeGen(scope)[0] for i in self.arguments]
     argvalues = [obj[0]] + argvalues
-    func = scope['module'].get_function_named(name)
-    return scope['builder'].call(func, argvalues), 'int'
+    func, typeSpec = classes[obj[1]][self.method]
+    return scope['builder'].call(func, argvalues), typeSpec
