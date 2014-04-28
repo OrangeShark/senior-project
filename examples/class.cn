@@ -7,9 +7,34 @@ class Foo {
     this.y = y;
     this.z = z;
   }
+  int getX() {
+    return this.x;
+  }
+  void setX(int x) {
+    this.x = x;
+  }
+
+  float getY() {
+    return this.y;
+  }
+  
+  void setY(float y) {
+    this.y = y;
+  }
+  
+  int getZ() {
+    return this.z;
+  }
+
+  void setZ(int z) {
+    this.z = z;
+  }
+    
 }
 
 void main() {
   Foo my_foo = Foo(2, 5.5, 3);
-  printf("%d", my_foo.x);
+  printf("%d\n", my_foo.getX());
+  my_foo.setX(5);
+  printf("%d\n", my_foo.getX()); 
 }

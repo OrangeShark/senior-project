@@ -223,7 +223,8 @@ def p_expression(t):
                 | paren_expr
                 | array
                 | attribute_assign
-                | class_attribute'''
+                | class_attribute
+                | method_call'''
   t[0] = t[1]
 
 def p_attribute_assign(t):
@@ -234,6 +235,9 @@ def p_class_attribute(t):
   'class_attribute : expression DOT ID'
   t[0] = ast.Attribute(t[1], t[3])
 
+def p_method_call(t):
+  'method_call : expression DOT ID LPAREN arguments RPAREN'
+  t[0] = ast.MethodCall(t[1], t[3], t[5])
 
 def p_assignment(t):
   '''assignment : ID ASSIGN expression

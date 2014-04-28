@@ -183,6 +183,8 @@ class ClassDeclaration(SyntaxNode):
     objstruct = Type.struct(attributes, 'object.' + self.name)
 
     self.body[1].codeGen((scope, self.name, objstruct))
+    for i in range(len(self.body[2])):
+       self.body[2][i].codeGen((scope, self.name, objstruct))
 
 class ClassAttribute(SyntaxNode):
   def __init__(self, typeRef, name, expression=None):
@@ -228,13 +230,39 @@ class ClassConstructor(SyntaxNode):
 
 class ClassMethod(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
-    self.typeSpec = typeSpec
+    self.typeSpec = typeSpec.upper()
     self.name = name
+    if params == None:
+      params = []
     self.params = params
     self.body = body
 
   def codeGen(self, scope):
-    pass
+    scope, className, struct = scope
+    newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {} }
+    params = [p.codeGen(scope) for p in self.params]
+    params = [Type.pointer(struct)] + params
+    ty_method = Type.function(llvmTypes[self.typeSpec], params)
+    func = scope['module'].add_function(ty_method, className.upper() + "." + self.name)
+    func.args[0].name = "this"
+    newScope['names']['this'] = (func.args[0], className)
+    for i in range(len(self.params)):
+      name = self.params[i].name
+      func.args[i+1] = name
+      newScope['names'][name] = (func.args[i+1], self.params[i].typeSpec)
+    bb = func.append_basic_block("entry")
+    newScope['builder'] = Builder.new(bb)
+    try:
+      for statement in self.body:
+        statement.codeGen(newScope)
+      if self.typeSpec == 'VOID':
+        newScope['builder'].ret_void()
+      func.verify()
+    except:
+      func.delete()
+      raise
+    return ty_method, self.name
+
 
 class AttributeAssignment(SyntaxNode):
   def __init__(self, objName, name, expression):
@@ -267,7 +295,6 @@ class Attribute(SyntaxNode):
 
     attPos = classes[obj[1].upper()][self.name]
     pos = scope['builder'].gep(obj[0], attPos[0])
-    print(pos)
     return scope['builder'].load(pos), attPos[1]
 
 
@@ -534,6 +561,7 @@ class BinaryOp(SyntaxNode):
         '/': lambda l, r: builder.sdiv(l, r, "tmp"),
         '%': lambda l, r: builder.srem(l, r, "tmp"),
         '==': lambda l, r: builder.icmp(ICMP_EQ, l, r, "tmp"),
+        '!=': lambda l, r: builder.icmp(ICMP_NE, l, r, "tmp"),
         '>=': lambda l, r: builder.icmp(ICMP_SGE, l, r, "tmp"),
         '>': lambda l, r: builder.icmp(ICMP_SGT, l, r, "tmp"),
         '<=': lambda l, r: builder.icmp(ICMP_SLE, l, r, "tmp"),
@@ -568,9 +596,24 @@ class Call(SyntaxNode):
     func = self.expression.codeGen(scope)
     if func[1] != "FUNC":
       raise RuntimeError("Not a function")
-    
     #if len(func.args) != len(self.arguments):
     #  raise RuntimeError("Incorrect number of arguments")
     len(self.arguments)
     argvalues = [i.codeGen(scope)[0] for i in self.arguments]
     return scope['builder'].call(func[0], argvalues, 'calltmp'), func[2]
+
+class MethodCall(SyntaxNode):
+  def __init__(self, expression, method, arguments):
+    self.expression = expression
+    self.method = method
+    if arguments == None:
+      arguments = []
+    self.arguments = arguments
+
+  def codeGen(self, scope):
+    obj = self.expression.codeGen(scope)
+    name = obj[1] + "." + self.method
+    argvalues = [i.codeGen(scope)[0] for i in self.arguments]
+    argvalues = [obj[0]] + argvalues
+    func = scope['module'].get_function_named(name)
+    return scope['builder'].call(func, argvalues), 'INT'
