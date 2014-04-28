@@ -3,13 +3,38 @@ from llvm import *
 from llvm.core import *
 from cn.libcn import LibCN
 
+# llvmTypes
 llvmTypes = {
-    'INT': Type.int(),
-    'FLOAT': Type.double(),
-    'BOOLEAN' : Type.int(1),
-    'VOID' : Type.void(),
-    'STRING' : Type.pointer(Type.int(8))
-    }
+    'int': Type.int(),
+    'float': Type.double(),
+    'boolean' : Type.int(1),
+    'void' : Type.void(),
+    'string' : Type.pointer(Type.int(8))
+}
+
+# Dictionary of User defined classes
+classes = {}
+
+opResultType = {
+    '+': 'int',
+    '-': 'int', 
+    '*': 'int',
+    '/': 'int',
+    '%': 'int',
+    '==': 'boolean',
+    '<=': 'boolean',
+    '<': 'boolean',
+    '>=': 'boolean',
+    '>': 'boolean',
+    '+f': 'float',
+    '-f': 'float',
+    '*f': 'float',
+    '/f': 'float',
+    '%f': 'float',
+    '==b': 'boolean',
+    '&&b': 'boolean',
+    '||b': 'boolean'
+}
 
 # Helper method for creating allocations of variables on the stack
 def createEntryBlockAlloca(function, dataType, var_name):
@@ -40,16 +65,16 @@ class Program(SyntaxNode):
       importDec.codeGen(scope)
 
     func = module.get_or_insert_function(LibCN().printf, 'printf')
-    scope['names']['printf'] = func, 'FUNC', 'INT'
+    scope['names']['printf'] = func, 'FUNC', 'int'
     
     func = module.get_or_insert_function(LibCN().scanf, 'scanf')
-    scope['names']['scanf'] = func, 'FUNC', 'INT'
+    scope['names']['scanf'] = func, 'FUNC', 'int'
     
     func = module.get_or_insert_function(LibCN().getchar, 'getchar')
-    scope['names']['getchar'] = func, 'FUNC', 'INT'
+    scope['names']['getchar'] = func, 'FUNC', 'int'
     
     func = module.get_or_insert_function(LibCN().system, 'system')
-    scope['names']['system'] = func, 'FUNC', 'INT'
+    scope['names']['system'] = func, 'FUNC', 'int'
     
     for declaration in self.declarations:
       declaration.codeGen(scope)
@@ -65,7 +90,7 @@ class ImportDeclaration(SyntaxNode):
 
 class GVariableDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, expression=None):
-    self.typeSpec = typeSpec.upper()
+    self.typeSpec = typeSpec
     self.name = name
     self.expression = expression
  
@@ -116,7 +141,7 @@ class Variable(SyntaxNode):
 
 class Function(SyntaxNode):
   def __init__(self, typeSpec, name, params, body):
-    self.typeSpec = typeSpec.upper()
+    self.typeSpec = typeSpec
     self.name = name
     if params == None:
       params = []
@@ -132,14 +157,14 @@ class Function(SyntaxNode):
     scope['names'][self.name] = (func, 'FUNC', self.typeSpec)
     for arg, param in zip(func.args, self.params):
       arg.name = param.name
-      scope['names'][param.name] = (arg, param.typeSpec)
+      newScope['names'][param.name] = (arg, param.typeSpec)
 
     bb = func.append_basic_block("entry")
     newScope['builder'] = Builder.new(bb)
     try:
       for statement in self.body:
         statement.codeGen(newScope)
-      if(self.typeSpec == 'VOID'):
+      if(self.typeSpec == 'void'):
         newScope['builder'].ret_void()
       func.verify()
     except:
@@ -157,20 +182,146 @@ class Array(SyntaxNode) :
     
 class Param(SyntaxNode):
   def __init__(self, typeSpec, name):
-    self.typeSpec = typeSpec.upper()
+    self.typeSpec = typeSpec
     self.name = name
 
   def codeGen(self, scope):
     return llvmTypes[self.typeSpec]
 
+
 class ClassDeclaration(SyntaxNode):
   def __init__(self, name, body):
-    self.type = 'class'
+    self.typeRef = 'CLASS'
     self.name = name
     self.body = body
 
   def codeGen(self, scope):
-    pass
+    makeind = lambda x: Constant.int(Type.int(), x)
+    attributes = []
+    classes[self.name] = {}
+    for i, a in enumerate(self.body[0]):
+      attributes.append(a.codeGen(scope))
+      gep = [makeind(0), makeind(i)]
+      classes[self.name][a.name] = (gep, a.typeRef)
+    
+    objstruct = Type.struct(attributes, 'object.{}'.format(self.name))
+
+    self.body[1].codeGen((scope, self.name, objstruct))
+    for i in range(len(self.body[2])):
+       self.body[2][i].codeGen((scope, self.name, objstruct))
+
+class ClassAttribute(SyntaxNode):
+  def __init__(self, typeRef, name, expression=None):
+    self.typeRef = typeRef
+    self.name = name
+    self.expression = expression
+  
+  def codeGen(self, scope):
+    return llvmTypes[self.typeRef]
+
+class ClassConstructor(SyntaxNode):
+  def __init__(self, params, body):
+    self.params = params
+    self.body = body
+  
+  def codeGen(self, scope):
+    scope, name, struct = scope
+
+    newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {}}
+    params = [p.codeGen(scope) for p in self.params]
+    ty_constructor = Type.function(Type.pointer(struct), params)
+
+    func = scope['module'].add_function(ty_constructor, name)
+    llvmTypes[name] = Type.pointer(struct)
+    scope['names'][name] = (func, 'FUNC', name)
+    for arg, param in zip(func.args, self.params):
+      arg.name = param.name
+      newScope['names'][param.name] = (arg, param.typeSpec)
+    
+    bb = func.append_basic_block("entry")
+    newScope['builder'] = Builder.new(bb)
+    retobj = newScope['builder'].malloc(struct, "this")
+    newScope['names']['this'] = (retobj, name)
+    try:
+      for statement in self.body:
+        statement.codeGen(newScope)
+      newScope['builder'].ret(retobj)
+      func.verify()
+    except:
+      func.delete()
+      raise
+    return ty_constructor, name
+
+class ClassMethod(SyntaxNode):
+  def __init__(self, typeSpec, name, params, body):
+    self.typeSpec = typeSpec
+    self.name = name
+    if params == None:
+      params = []
+    self.params = params
+    self.body = body
+
+  def codeGen(self, scope):
+    scope, className, struct = scope
+    newScope = {'module' : scope['module'], 'parent' : scope, 'names' : {} }
+    params = [p.codeGen(scope) for p in self.params]
+    params = [Type.pointer(struct)] + params
+    ty_method = Type.function(llvmTypes[self.typeSpec], params)
+    func = scope['module'].add_function(ty_method, "{}.{}".format(className, self.name))
+    func.args[0].name = "this"
+    newScope['names']['this'] = (func.args[0], className)
+    classes[className][self.name] = (func, self.typeSpec)
+    for i in range(len(self.params)):
+      name = self.params[i].name
+      func.args[i+1] = name
+      newScope['names'][name] = (func.args[i+1], self.params[i].typeSpec)
+    bb = func.append_basic_block("entry")
+    newScope['builder'] = Builder.new(bb)
+    try:
+      for statement in self.body:
+        statement.codeGen(newScope)
+      if self.typeSpec == 'void':
+        newScope['builder'].ret_void()
+      func.verify()
+    except:
+      func.delete()
+      raise
+    return ty_method, self.name
+
+
+class AttributeAssignment(SyntaxNode):
+  def __init__(self, objName, name, expression):
+    self.objName = objName
+    self.name = name
+    self.expression = expression
+  
+  def codeGen(self, scope):
+    obj = scope['names'][self.objName.name]
+    if(obj == None):
+      raise RuntimeError("Not in the scope of a class function or constructor")
+
+    val = self.expression.codeGen(scope)
+
+    attPos = classes[obj[1]][self.name]
+    if(attPos[1] != val[1]):
+      raise RuntimeError("Not of the same type")
+    pos = scope['builder'].gep(obj[0], attPos[0])
+    return scope['builder'].store(val[0], pos), val[1]
+    
+class Attribute(SyntaxNode):
+  def __init__(self, objName, name):
+    self.objName = objName
+    self.name = name
+
+  def codeGen(self, scope):
+    obj = scope['names'][self.objName.name]
+    if(obj == None):
+      raise RuntimeError("Not in the scope")
+
+    attPos = classes[obj[1]][self.name]
+    pos = scope['builder'].gep(obj[0], attPos[0])
+    return scope['builder'].load(pos), attPos[1]
+
 
 class IfStmt(SyntaxNode):
   def __init__(self, condition, statement):
@@ -179,7 +330,7 @@ class IfStmt(SyntaxNode):
 
   def codeGen(self, scope):
     condition, dtype = self.condition.codeGen(scope)
-    if dtype != "BOOLEAN":
+    if dtype != "boolean":
       raise RuntimeError('If expression is not boolean')
 
     function = scope['builder'].basic_block.function
@@ -204,7 +355,7 @@ class IfElseStmt(SyntaxNode):
 
   def codeGen(self, scope):
     condition, dtype = self.condition.codeGen(scope)
-    if dtype != "BOOLEAN":
+    if dtype != "boolean":
       raise RuntimeError('If expression is not boolean')
 
     function = scope['builder'].basic_block.function
@@ -232,7 +383,7 @@ class WhileStmt(SyntaxNode):
 
   def codeGen(self, scope):
     condition, dtype = self.condition.codeGen(scope)
-    if dtype != "BOOLEAN":
+    if dtype != "boolean":
       raise RuntimeError('If expression is not boolean')
     
     
@@ -264,7 +415,7 @@ class ReturnStmt(SyntaxNode):
 
 class VariableDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, expression=None):
-    self.typeSpec = typeSpec.upper()
+    self.typeSpec = typeSpec
     self.name = name
     self.expression = expression
 
@@ -276,7 +427,7 @@ class VariableDeclaration(SyntaxNode):
       value, typeSpec = self.expression.codeGen(scope)
       if typeSpec != self.typeSpec:
         # Not the same type
-        raise RuntimeEerror("Not the same type")
+        raise RuntimeError("Not the same type")
       alloca = createEntryBlockAlloca(scope['builder'].basic_block.function, self.typeSpec, self.name)
       scope['builder'].store(value, alloca)
       scope['names'][self.name] = (alloca, self.typeSpec)
@@ -285,7 +436,7 @@ class VariableDeclaration(SyntaxNode):
 
 class ArrayDeclaration(SyntaxNode):
   def __init__(self, typeSpec, name, size, array_lit=None):
-    self.typeSpec = typeSpec.upper()
+    self.typeSpec = typeSpec
     self.name = name
     self.size = size
     self.array_lit = array_lit
@@ -332,7 +483,7 @@ class Integer(SyntaxNode):
     ty = Type.int()
     val = Constant.int(ty, self.value)
     #tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
-    return val, 'INT'
+    return val, 'int'
 
 class Float(SyntaxNode):
   def __init__(self, value):
@@ -342,7 +493,7 @@ class Float(SyntaxNode):
     ty = Type.double()
     val = Constant.real(ty, self.value)
     #tmp = scope['builder'].fadd(val, Constant.real(ty, 0.0), "tmp")
-    return val, 'FLOAT'
+    return val, 'float'
 
 
 class Boolean(SyntaxNode):
@@ -353,7 +504,7 @@ class Boolean(SyntaxNode):
     ty = Type.int(1)
     val = Constant.int(ty, self.value)
     #tmp = scope['builder'].add(val, Constant.int(ty, 0), "tmp")
-    return val, 'BOOLEAN'
+    return val, 'boolean'
 
 class String(SyntaxNode):
   def __init__(self, value):
@@ -389,27 +540,6 @@ class Character(SyntaxNode):
   def codeGen(self, scope):
     pass
 
-opResultType = {
-    '+': 'INT',
-    '-': 'INT', 
-    '*': 'INT',
-    '/': 'INT',
-    '%': 'INT',
-    '==': 'BOOLEAN',
-    '!=': 'BOOLEAN',
-    '<=': 'BOOLEAN',
-    '<': 'BOOLEAN',
-    '>=': 'BOOLEAN',
-    '>': 'BOOLEAN',
-    '+f': 'FLOAT',
-    '-f': 'FLOAT',
-    '*f': 'FLOAT',
-    '/f': 'FLOAT',
-    '%f': 'FLOAT',
-    '==b': 'BOOLEAN',
-    '&&b': 'BOOLEAN',
-    '||b': 'BOOLEAN'
-}
 
 class BinaryOp(SyntaxNode):
   def __init__(self, left, op, right):
@@ -423,11 +553,11 @@ class BinaryOp(SyntaxNode):
     right = self.right.codeGen(scope)
     assert(left[1] == right[1])
     op = self.op
-    if(left[1] == 'INT') :
+    if(left[1] == 'int') :
       op = self.op
-    elif(left[1] == 'FLOAT') :
+    elif(left[1] == 'float') :
       op += 'f'
-    elif(left[1] == 'BOOLEAN') :
+    elif(left[1] == 'boolean') :
       op += 'b'
     builder = scope['builder']
     tmp = {'+': lambda l, r: builder.add(l, r, "tmp"),
@@ -471,9 +601,24 @@ class Call(SyntaxNode):
     func = self.expression.codeGen(scope)
     if func[1] != "FUNC":
       raise RuntimeError("Not a function")
-    
     #if len(func.args) != len(self.arguments):
     #  raise RuntimeError("Incorrect number of arguments")
     len(self.arguments)
     argvalues = [i.codeGen(scope)[0] for i in self.arguments]
     return scope['builder'].call(func[0], argvalues, 'calltmp'), func[2]
+
+class MethodCall(SyntaxNode):
+  def __init__(self, expression, method, arguments):
+    self.expression = expression
+    self.method = method
+    if arguments == None:
+      arguments = []
+    self.arguments = arguments
+
+  def codeGen(self, scope):
+    obj = self.expression.codeGen(scope)
+    name = '{}.{}'.format(obj[1], self.method)
+    argvalues = [i.codeGen(scope)[0] for i in self.arguments]
+    argvalues = [obj[0]] + argvalues
+    func, typeSpec = classes[obj[1]][self.method]
+    return scope['builder'].call(func, argvalues), typeSpec

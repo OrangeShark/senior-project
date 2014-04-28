@@ -39,7 +39,7 @@ class TestAST(unittest.TestCase):
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
     self.assertEqual(retval.as_int_signed(), 5)
-    self.assertEqual('INT', tmp[1])
+    self.assertEqual('int', tmp[1])
 
   def test_integer_sunny2(self):
     my_module = Module.new('my_module')
@@ -56,7 +56,7 @@ class TestAST(unittest.TestCase):
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
     self.assertEqual(retval.as_int_signed(), 5)
-    self.assertEqual('INT', tmp[1])
+    self.assertEqual('int', tmp[1])
     
   def test_integer_rainy(self):
     my_module = Module.new('my_module')
@@ -73,4 +73,4 @@ class TestAST(unittest.TestCase):
     ee = ExecutionEngine.new(my_module)
     retval = ee.run_function(f_sum, [])
     self.assertEqual(retval.as_int_signed(), -5)
-    self.assertEqual('INT', tmp[1])
+    self.assertEqual('int', tmp[1])

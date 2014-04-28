@@ -70,7 +70,9 @@ def p_type(t):
           | FLOAT
           | STRING
           | BOOLEAN
-          | CHAR'''
+          | CHAR
+          | ID
+          | type LBRACKET RBRACKET'''
   t[0] = t[1]
 
 def p_params(t):
@@ -92,12 +94,46 @@ def p_pram(t):
   t[0] = ast.Param(t[1], t[2])
 
 def p_class_declaration(t):
-  'class_declaration : CLASS ID class_block'
-  t[0] = ast.ClassDeclaration(t[2], t[3])
+  'class_declaration : CLASS ID LBRACE class_block RBRACE'
+  t[0] = ast.ClassDeclaration(t[2], t[4])
 
 def p_class_block(t):
-  'class_block : empty'
-  pass
+  'class_block : attribute_list constructor method_list'
+  t[0] = (t[1], t[2], t[3])
+
+def p_attribute_list(t):
+  '''attribute_list : attribute_list attribute_declaration
+                    | empty'''
+  if len(t) == 2:
+    t[0] = []
+  else:
+    t[0] = t[1]
+    t[0].append(t[2])
+
+def p_attribute(t):
+  '''attribute_declaration : type ID SEMI
+                           | type ID ASSIGN expression SEMI'''
+  if len(t) == 4:
+    t[0] = ast.ClassAttribute(t[1], t[2])
+  else:
+    t[0] = ast.ClassAttribute(t[1], t[2], t[4])
+
+def p_method_list(t):
+  '''method_list : method_list method_declaration
+                 | empty'''
+  if len(t) == 2:
+    t[0] = []
+  else:
+    t[0] = t[1]
+    t[0].append(t[2])
+
+def p_method_declaration(t):
+  'method_declaration : type ID LPAREN params RPAREN compound_stmt'
+  t[0] = ast.ClassMethod(t[1], t[2], t[4], t[6])
+
+def p_constructor(t):
+  'constructor : CONSTR LPAREN params RPAREN compound_stmt'
+  t[0] = ast.ClassConstructor(t[3], t[5])
 
 def p_compound_stmt(t):
   'compound_stmt : LBRACE statement_list RBRACE'
@@ -185,8 +221,23 @@ def p_expression(t):
                 | variable
                 | literal
                 | paren_expr
-                | array'''
+                | array
+                | attribute_assign
+                | class_attribute
+                | method_call'''
   t[0] = t[1]
+
+def p_attribute_assign(t):
+  'attribute_assign : expression DOT ID ASSIGN expression'
+  t[0] = ast.AttributeAssignment(t[1], t[3], t[5])
+
+def p_class_attribute(t):
+  'class_attribute : expression DOT ID'
+  t[0] = ast.Attribute(t[1], t[3])
+
+def p_method_call(t):
+  'method_call : expression DOT ID LPAREN arguments RPAREN'
+  t[0] = ast.MethodCall(t[1], t[3], t[5])
 
 def p_assignment(t):
   '''assignment : ID ASSIGN expression
