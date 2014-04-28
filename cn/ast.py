@@ -15,25 +15,27 @@ llvmTypes = {
 # Dictionary of User defined classes
 classes = {}
 
-opResultType = {
-    '+': 'int',
-    '-': 'int', 
-    '*': 'int',
-    '/': 'int',
-    '%': 'int',
-    '==': 'boolean',
-    '<=': 'boolean',
-    '<': 'boolean',
-    '>=': 'boolean',
-    '>': 'boolean',
-    '+f': 'float',
-    '-f': 'float',
-    '*f': 'float',
-    '/f': 'float',
-    '%f': 'float',
-    '==b': 'boolean',
-    '&&b': 'boolean',
-    '||b': 'boolean'
+# Dictionary of Binary Operations
+binaryOp = {
+    '+': lambda builder, l, r: (builder.add(l, r, "tmp"), 'int'),
+    '-': lambda builder, l, r: (builder.sub(l, r, "tmp"), 'int'),
+    '*': lambda builder, l, r: (builder.mul(l, r, "tmp"), 'int'),
+    '/': lambda builder, l, r: (builder.sdiv(l, r, "tmp"), 'int'),
+    '%': lambda builder, l, r: (builder.srem(l, r, "tmp"), 'int'),
+    '==': lambda builder, l, r: (builder.icmp(ICMP_EQ, l, r, "tmp"), 'boolean'),
+    '!=': lambda builder, l, r: (builder.icmp(ICMP_NE, l, r, "tmp"), 'boolean'),
+    '>=': lambda builder, l, r: (builder.icmp(ICMP_SGE, l, r, "tmp"), 'boolean'),
+    '>': lambda builder, l, r: (builder.icmp(ICMP_SGT, l, r, "tmp"), 'boolean'), 
+    '<=': lambda builder, l, r: (builder.icmp(ICMP_SLE, l, r, "tmp"), 'boolean'), 
+    '<': lambda builder, l, r: (builder.icmp(ICMP_SLT, l, r, "tmp"), 'boolean'),
+    '+f': lambda builder, l, r: (builder.fadd(l, r, "tmp"), 'float'),
+    '-f': lambda builder, l, r: (builder.fsub(l, r, "tmp"), 'float'),
+    '*f': lambda builder, l, r: (builder.fmul(l, r, "tmp"), 'float'),
+    '/f': lambda builder, l, r: (builder.fdiv(l, r, "tmp"), 'float'),
+    '%f': lambda builder, l, r: (builder.frem(l, r, "tmp"), 'float'),
+    '==b': lambda builder, l, r: (builder.icmp(ICMP_EQ, l, r, "tmp"), 'boolean'),
+    '&&b': lambda builder, l, r: (builder.and_(l, r, "tmp"), 'boolean'),
+    '||b': lambda builder, l, r: (builder.or_(l, r, "tmp"), 'boolean')
 }
 
 # Helper method for creating allocations of variables on the stack
@@ -518,7 +520,7 @@ class String(SyntaxNode):
     mod = scope['module']
     name_fmt = '.conststr.%x.%x'
     while True:
-      name = name_fmt % (hash(self.value), collision)
+      name = name_fmt.format(hash(self.value), collision)
       try:
         globalstr = mod.get_global_variable_named(name)
       except LLVMException:
@@ -531,7 +533,7 @@ class String(SyntaxNode):
         if existed != str(val):
           collision += 1
           continue
-      return globalstr.bitcast(Type.pointer(val.type.element)), 'STRING'
+      return globalstr.bitcast(Type.pointer(val.type.element)), 'string'
 
 class Character(SyntaxNode):
   def __init__(self, value):
@@ -560,27 +562,7 @@ class BinaryOp(SyntaxNode):
     elif(left[1] == 'boolean') :
       op += 'b'
     builder = scope['builder']
-    tmp = {'+': lambda l, r: builder.add(l, r, "tmp"),
-        '-': lambda l, r: builder.sub(l, r, "tmp"),
-        '*': lambda l, r: builder.mul(l, r, "tmp"),
-        '/': lambda l, r: builder.sdiv(l, r, "tmp"),
-        '%': lambda l, r: builder.srem(l, r, "tmp"),
-        '==': lambda l, r: builder.icmp(ICMP_EQ, l, r, "tmp"),
-        '!=': lambda l, r: builder.icmp(ICMP_NE, l, r, "tmp"),
-        '>=': lambda l, r: builder.icmp(ICMP_SGE, l, r, "tmp"),
-        '>': lambda l, r: builder.icmp(ICMP_SGT, l, r, "tmp"),
-        '<=': lambda l, r: builder.icmp(ICMP_SLE, l, r, "tmp"),
-        '<': lambda l, r: builder.icmp(ICMP_SLT, l, r, "tmp"),
-        '+f': lambda l, r: builder.fadd(l, r, "tmp"),
-        '-f': lambda l, r: builder.fsub(l, r, "tmp"),
-        '*f': lambda l, r: builder.fmul(l, r, "tmp"),
-        '/f': lambda l, r: builder.fdiv(l, r, "tmp"),
-        '%f': lambda l, r: builder.frem(l, r, "tmp"),
-        '==b': lambda l, r: builder.icmp(ICMP_EQ, l, r, "tmp"),
-        '&&b': lambda l, r: builder.and_(l, r, "tmp"),
-        '||b': lambda l, r: builder.or_(l, r, "tmp")
-        }
-    return tmp[op](left[0], right[0]), opResultType[op];
+    return binaryOp[op](builder, left[0], right[0])
 
 class UnaryOp(SyntaxNode):
   def __init__(self, op, expression):
